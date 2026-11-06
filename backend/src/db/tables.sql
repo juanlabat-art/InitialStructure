@@ -1,104 +1,92 @@
--- 1. Catálogo de Tarifas (HU4)
-CREATE TABLE tarifas (
-    id SERIAL PRIMARY KEY,
-    categoria VARCHAR(20) NOT NULL UNIQUE CHECK (categoria IN ('economico', 'confort', 'premium')),
-    precio_base NUMERIC(10, 2) NOT NULL CHECK (precio_base > 0),
-    precio_por_km NUMERIC(10, 2) NOT NULL CHECK (precio_por_km > 0)
+-- =====================================================
+-- Clon de Reddit - Solo tablas (PostgreSQL)
+-- =====================================================
+ 
+-- ---------- ENTIDADES ----------
+ 
+CREATE TABLE usuario (
+    id              SERIAL PRIMARY KEY,
+    username        VARCHAR(30)  NOT NULL UNIQUE,
+    email           VARCHAR(255) NOT NULL UNIQUE,
+    karma           INTEGER      NOT NULL DEFAULT 0,
+    fecha_registro  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- 2. Pasajeros (HU1)
-CREATE TABLE pasajeros (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    email VARCHAR(150) NOT NULL UNIQUE,
-    telefono VARCHAR(20) NOT NULL
+ 
+CREATE TABLE comunidad (
+    id              SERIAL PRIMARY KEY,
+    nombre          VARCHAR(21)  NOT NULL UNIQUE,
+    descripcion     TEXT,
+    creador_id      INTEGER      NOT NULL REFERENCES usuario(id),
+    es_nsfw         BOOLEAN      NOT NULL DEFAULT FALSE,
+    fecha_creacion  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- 3. Conductores (HU1)
-CREATE TABLE conductores (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    licencia VARCHAR(50) NOT NULL UNIQUE,
-    calificacion_promedio NUMERIC(3, 2) DEFAULT 0 CHECK (calificacion_promedio >= 0 AND calificacion_promedio <= 5),
-    disponible BOOLEAN DEFAULT TRUE
+ 
+CREATE TABLE post (
+    id            SERIAL PRIMARY KEY,
+    comunidad_id  INTEGER      NOT NULL REFERENCES comunidad(id),
+    autor_id      INTEGER      NOT NULL REFERENCES usuario(id),
+    titulo        VARCHAR(300) NOT NULL,
+    contenido     TEXT,
+    fecha         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    oculto        BOOLEAN      NOT NULL DEFAULT FALSE
 );
-
--- 4. Vehículos (HU2)
-CREATE TABLE vehiculos (
-    id SERIAL PRIMARY KEY,
-    conductor_id INTEGER NOT NULL REFERENCES conductores(id),
-    patente VARCHAR(20) NOT NULL UNIQUE,
-    modelo VARCHAR(50) NOT NULL,
-    anio INTEGER NOT NULL,
-    categoria VARCHAR(20) NOT NULL CHECK (categoria IN ('economico', 'confort', 'premium'))
+ 
+CREATE TABLE comentario (
+    id                   SERIAL PRIMARY KEY,
+    post_id              INTEGER   NOT NULL REFERENCES post(id),
+    autor_id             INTEGER   NOT NULL REFERENCES usuario(id),
+    comentario_padre_id  INTEGER   REFERENCES comentario(id),  -- NULL = comentario raíz
+    texto                TEXT      NOT NULL,
+    fecha                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    eliminado            BOOLEAN   NOT NULL DEFAULT FALSE
 );
-
--- 5. Métodos de Pago (HU3)
-CREATE TABLE metodos_pago (
-    id SERIAL PRIMARY KEY,
-    pasajero_id INTEGER NOT NULL REFERENCES pasajeros(id),
-    tipo VARCHAR(30) NOT NULL CHECK (tipo IN ('tarjeta_credito', 'tarjeta_debito', 'efectivo', 'billetera_virtual')),
-    ultimos_digitos CHAR(4) -- Solo para tarjetas, puede ser NULL en efectivo
+ 
+CREATE TABLE reporte (
+    id          SERIAL PRIMARY KEY,
+    usuario_id  INTEGER      NOT NULL REFERENCES usuario(id),
+    post_id     INTEGER      NOT NULL REFERENCES post(id),
+    motivo      VARCHAR(255) NOT NULL,
+    fecha       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- 6. Cupones (HU13)
-CREATE TABLE cupones (
-    id SERIAL PRIMARY KEY,
-    codigo VARCHAR(20) NOT NULL UNIQUE,
-    porcentaje_descuento INTEGER NOT NULL CHECK (porcentaje_descuento BETWEEN 1 AND 100),
-    fecha_vencimiento DATE NOT NULL
+ 
+CREATE TABLE ban (
+    id            SERIAL PRIMARY KEY,
+    comunidad_id  INTEGER      NOT NULL REFERENCES comunidad(id),
+    usuario_id    INTEGER      NOT NULL REFERENCES usuario(id),
+    moderador_id  INTEGER      NOT NULL REFERENCES usuario(id),
+    motivo        VARCHAR(255),
+    fecha_hasta   TIMESTAMP    -- NULL = ban permanente
 );
-
--- 7. Multiplicador Horario (HU11)
-CREATE TABLE multiplicadores_horario (
-    id SERIAL PRIMARY KEY,
-    dia_semana INTEGER NOT NULL CHECK (dia_semana BETWEEN 0 AND 6), -- 0=Domingo, 6=Sábado
-    hora_desde TIME NOT NULL,
-    hora_hasta TIME NOT NULL,
-    factor NUMERIC(3, 2) NOT NULL CHECK (factor > 1),
-    CONSTRAINT check_horario_valido CHECK (hora_desde < hora_hasta)
+ 
+-- ---------- RELACIONES N A M ----------
+ 
+CREATE TABLE miembros_comunidad (
+    usuario_id    INTEGER     NOT NULL REFERENCES usuario(id),
+    comunidad_id  INTEGER     NOT NULL REFERENCES comunidad(id),
+    rol           VARCHAR(10) NOT NULL DEFAULT 'miembro',   -- 'miembro' o 'moderador'
+    fecha_union   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, comunidad_id)
 );
-
--- 8. Viajes (HU5, HU6, HU7, HU11, HU13)
-CREATE TABLE viajes (
-    id SERIAL PRIMARY KEY,
-    pasajero_id INTEGER NOT NULL REFERENCES pasajeros(id),
-    conductor_id INTEGER REFERENCES conductores(id), -- NULL inicialmente (HU5)
-    vehiculo_id INTEGER REFERENCES vehiculos(id),
-    metodo_pago_id INTEGER NOT NULL REFERENCES metodos_pago(id),
-    cupon_id INTEGER REFERENCES cupones(id),
-    origen TEXT NOT NULL,
-    destino TEXT NOT NULL,
-    distancia_km NUMERIC(10, 2) NOT NULL CHECK (distancia_km > 0),
-    fecha_solicitud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    fecha_inicio TIMESTAMP,
-    fecha_fin TIMESTAMP,
-    estado VARCHAR(20) DEFAULT 'pendiente' 
-        CHECK (estado IN ('pendiente', 'asignado', 'en_curso', 'finalizado', 'cancelado', 'sin_conductor')),
-    tarifa_final NUMERIC(10, 2) NOT NULL, -- Se guarda el cálculo final (HU5)
-    multiplicador_aplicado NUMERIC(3, 2) DEFAULT 1.0
+ 
+CREATE TABLE votos_post (
+    usuario_id  INTEGER   NOT NULL REFERENCES usuario(id),
+    post_id     INTEGER   NOT NULL REFERENCES post(id),
+    valor       SMALLINT  NOT NULL,                          -- 1 o -1
+    fecha       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, post_id)
 );
-
--- 9. Calificaciones (HU8)
-CREATE TABLE calificaciones (
-    id SERIAL PRIMARY KEY,
-    viaje_id INTEGER NOT NULL UNIQUE REFERENCES viajes(id),
-    puntaje_pasajero INTEGER CHECK (puntaje_pasajero BETWEEN 1 AND 5),
-    puntaje_conductor INTEGER CHECK (puntaje_conductor BETWEEN 1 AND 5),
-    comentario TEXT
+ 
+CREATE TABLE votos_comentario (
+    usuario_id     INTEGER   NOT NULL REFERENCES usuario(id),
+    comentario_id  INTEGER   NOT NULL REFERENCES comentario(id),
+    valor          SMALLINT  NOT NULL,                       -- 1 o -1
+    fecha          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, comentario_id)
 );
-
--- 10. Cargos / Penalidades (HU12)
-CREATE TABLE cargos (
-    id SERIAL PRIMARY KEY,
-    viaje_id INTEGER NOT NULL REFERENCES viajes(id),
-    monto NUMERIC(10, 2) NOT NULL,
-    motivo VARCHAR(100) DEFAULT 'Penalidad por cancelación tardía'
-);
-
--- 11. Tabla pivote para uso de cupones (HU13 - Para que no se repita por pasajero)
-CREATE TABLE cupones_usados (
-    pasajero_id INTEGER REFERENCES pasajeros(id),
-    cupon_id INTEGER REFERENCES cupones(id),
-    PRIMARY KEY (pasajero_id, cupon_id)
+ 
+CREATE TABLE posts_guardados (
+    usuario_id  INTEGER   NOT NULL REFERENCES usuario(id),
+    post_id     INTEGER   NOT NULL REFERENCES post(id),
+    fecha       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, post_id)
 );
