@@ -22,8 +22,9 @@ class UsuarioService:
         ...
 
     def list_all(self) -> list[UsuarioResponseDTO]:
-        # TODO: devolver lista de UserResponseDTO
-        ...
+     usuarios = self.repo.list_all()
+     return [to_usuario_response(usuario) for usuario in usuarios]
+    ...
 
     def update(self, usuario_id: int, dto) -> UsuarioResponseDTO:
         # TODO: validar existencia, aplicar cambios desde dto, devolver el DTO actualizado.

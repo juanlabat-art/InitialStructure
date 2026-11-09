@@ -23,8 +23,8 @@ def get_usuario(usuario_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[UsuarioResponseDTO])
-def list_users(db: Session = Depends(get_db)):
-    # TODO: llamar a UserService(db).list_all()
+def list_usuarios(db: Session = Depends(get_db)):
+    return UsuarioService(db).list_all()
     ...
 
 
