@@ -1,13 +1,18 @@
-from sqlalchemy import Column, Integer, String
-
-from src.db.connection import Base
+from pydantic import BaseModel, Field, field_validator
 
 
-class Post(Base):
-    __tablename__ = "post"
+class UpdatePostSchema(BaseModel):
+    titulo: str = Field(min_length=1, max_length=300)
+    contenido: str | None = None
 
-    id = Column(Integer, primary_key=True)
-    comunidad_id = Column(Integer, nullable=False, foreign_key=comunidad(id))
-    email = Column(String, unique=True, nullable=False)
-    telefono = Column(String, nullable=False)
+    @field_validator("titulo", mode="before")
+    @classmethod
+    def limpiar_titulo(cls, titulo):
+        if isinstance(titulo, str):
+            return titulo.strip()
+        return titulo
 
+
+class CreatePostSchema(UpdatePostSchema):
+    comunidad_id: int = Field(gt=0)
+    autor_id: int = Field(gt=0)
