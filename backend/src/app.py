@@ -6,6 +6,7 @@ from src.utils.errors import AppError
 from src.routers import usuario_router
 from src.routers import comunidad_router
 from src.routers import post_router
+from src.routers import comentario_router
 app = FastAPI(title="Initial Structure API")
 
 app.add_exception_handler(AppError, app_error_handler)
@@ -14,9 +15,10 @@ app.include_router(user_router.router, prefix="/api")
 app.include_router(auth_router.router, prefix="/api")
 app.include_router(pasajero_router.router, prefix="/api")
 app.include_router(conductores_router.router, prefix="/api")
-app.include_router(usuario_router.router, prefix="/api")
+app.include_router(usuario_router.r0outer, prefix="/api")
 app.include_router(comunidad_router.router, prefix="/api")
 app.include_router(post_router.router, prefix="/api")
+app.include_router(comentario_router.router, prefix="/api")
 # TODO: registrar product_router cuando se implemente
 # app.include_router(product_router.router, prefix="/api")
 
