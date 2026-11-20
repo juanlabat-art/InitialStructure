@@ -1,4 +1,4 @@
-# punto. · Ideas sin eco
+# VoZero · Ideas sin eco
 
 Frontend interactivo de un foro de comunidades, desarrollado en TypeScript con Next.js.
 
@@ -36,6 +36,6 @@ Las comunidades incluyen publicaciones, ranking y moderación para las cuentas c
 
 Desde el avatar podés elegir una cuenta de demostración o registrar una nueva. La selección de cuenta es para pruebas locales.
 
-El frontend consulta FastAPI a través de `/api` en el mismo origen. Con `backend/.env` apuntando a PostgreSQL, Punto guarda en esa base los usuarios, comunidades, publicaciones, comentarios, votos, membresías, guardados, reportes, acciones de moderación y preguntas y respuestas anónimas. El navegador solo conserva la cuenta seleccionada y la sesión del espacio anónimo.
+El frontend consulta FastAPI a través de `/api` en el mismo origen. Con `backend/.env` apuntando a PostgreSQL, VoZero guarda en esa base los usuarios, comunidades, publicaciones, comentarios, votos, membresías, guardados, reportes, acciones de moderación y preguntas y respuestas anónimas. El navegador solo conserva la cuenta seleccionada y la sesión del espacio anónimo.
 
 Si la base está vacía, registrá una cuenta y creá la primera comunidad. Las publicaciones tendrán los IDs que asigne la base.

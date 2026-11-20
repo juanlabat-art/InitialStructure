@@ -31,8 +31,15 @@ class ForumService:
         ))
 
     def require_member(self, community_id, user_id):
-        if not self.role(community_id, user_id):
+        self.db.get(Comunidad, community_id, with_for_update=True)
+        if self.banned(community_id, user_id) or not self.role(community_id, user_id):
             raise HTTPException(403, "Debés unirte a la comunidad para participar")
+
+    def banned(self, community_id, user_id):
+        return self.db.scalar(select(bans.c.id).where(
+            bans.c.comunidad_id == community_id, bans.c.usuario_id == user_id,
+            or_(bans.c.fecha_hasta.is_(None), bans.c.fecha_hasta > utc_now()),
+        ).limit(1)) is not None
 
     def require_visible_comments(self, post_id, user_id):
         visible = self.db.scalar(select(Post.id).where(
@@ -63,11 +70,13 @@ class ForumService:
             "baneos": db.execute(select(bans).where(or_(
                 bans.c.usuario_id == user_id, bans.c.comunidad_id.in_(moderated),
             ))).mappings().all(),
-            "votos_comentarios": db.execute(select(comment_votes).where(
-                comment_votes.c.usuario_id == user_id,
+            "votos_comentarios": db.execute(select(comment_votes).join(Comentario, Comentario.id == comment_votes.c.comentario_id).where(
+                comment_votes.c.usuario_id == user_id, comment_votes.c.usuario_id != Comentario.autor_id,
             )).mappings().all(),
             "puntajes_comentarios": dict(db.execute(select(
                 comment_votes.c.comentario_id, func.sum(comment_votes.c.valor),
+            ).join(Comentario, Comentario.id == comment_votes.c.comentario_id).where(
+                comment_votes.c.usuario_id != Comentario.autor_id,
             ).group_by(comment_votes.c.comentario_id)).tuples().all()),
             "preguntas": db.execute(select(questions)).mappings().all(),
             "respuestas": db.execute(visible_answers).mappings().all(),
@@ -109,10 +118,7 @@ class ForumService:
         role = self.role(community_id, payload.usuario_id)
         keys = {"comunidad_id": community_id, "usuario_id": payload.usuario_id}
         if payload.accion == "unir":
-            if db.scalar(select(bans.c.id).where(
-                bans.c.comunidad_id == community_id, bans.c.usuario_id == payload.usuario_id,
-                or_(bans.c.fecha_hasta.is_(None), bans.c.fecha_hasta > utc_now()),
-            ).limit(1)):
+            if self.banned(community_id, payload.usuario_id):
                 raise HTTPException(403, "Existe un ban vigente")
             if role is None:
                 self._change_relation(memberships, keys, {"rol": "miembro"})
@@ -123,7 +129,7 @@ class ForumService:
                     memberships.c.usuario_id != payload.usuario_id,
                 ).distinct()).all()
                 if otros_roles and "moderador" not in otros_roles:
-                    raise HTTPException(409, "El ?ltimo moderador no puede salir si quedan miembros")
+                    raise HTTPException(409, "El último moderador no puede salir si quedan miembros")
             self._change_relation(memberships, keys)
         else:
             if role != "moderador":
@@ -176,21 +182,21 @@ class ForumService:
                 post.oculto = True
         db.commit()
 
-    def vote_comment(self, comment_id, payload):
+    def vote_comment(self, comment_id, usuario_id, valor):
         db = self.db
         comment = db.get(Comentario, comment_id, with_for_update=True)
         if not comment or comment.eliminado or db.get(Post, comment.post_id).oculto:
             raise HTTPException(404, "El comentario no está disponible")
-        self._actor(payload.usuario_id)
-        self.require_visible_comments(comment.post_id, payload.usuario_id)
-        if comment.autor_id == payload.usuario_id:
+        self._actor(usuario_id)
+        self.require_visible_comments(comment.post_id, usuario_id)
+        if comment.autor_id == usuario_id:
             raise HTTPException(403, "No podés votar tu propio comentario")
         old = db.scalar(select(comment_votes.c.valor).where(
-            comment_votes.c.usuario_id == payload.usuario_id, comment_votes.c.comentario_id == comment_id,
+            comment_votes.c.usuario_id == usuario_id, comment_votes.c.comentario_id == comment_id,
         )) or 0
         autor = db.get(Usuario, comment.autor_id, with_for_update=True)
-        nuevo = 0 if old == payload.valor else payload.valor
-        self._change_relation(comment_votes, {"usuario_id": payload.usuario_id, "comentario_id": comment_id},
+        nuevo = 0 if old == valor else valor
+        self._change_relation(comment_votes, {"usuario_id": usuario_id, "comentario_id": comment_id},
                               {"valor": nuevo} if nuevo else None)
         actualizar_karma(db, autor)
         db.commit()

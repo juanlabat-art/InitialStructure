@@ -74,11 +74,8 @@ export function mountPunto(
     membership,
     isMod,
     banned,
-    votesFor,
     totalKarma,
-    save,
     connect,
-    reset,
   } = context;
   function toast(msg: string, error = false) {
     const root = toastRoot;
@@ -154,12 +151,8 @@ export function mountPunto(
       toast("Este contenido está oculto.", true);
       return;
     }
-    const currentVote = votesFor(type, objectId).find(
-      (v) => v.userId === me().id,
-    );
-    const nextValue = currentVote?.value === value ? 0 : value;
-    if (type === "post") await forumApi.votePost(me().id, objectId, nextValue);
-    else await forumApi.voteComment(me().id, objectId, nextValue);
+    if (type === "post") await forumApi.votePost(me().id, objectId, value);
+    else await forumApi.voteComment(me().id, objectId, value);
     await connect(listeners.signal);
     render();
   }
@@ -215,31 +208,14 @@ export function mountPunto(
         ui.profileMenu = !ui.profileMenu;
         render();
         break;
-      case "switch-user":
-        const previousUser = context.db.currentUserId;
-        context.db.currentUserId = itemId;
-        try {
-          await connect(listeners.signal);
-        } catch (error) {
-          context.db.currentUserId = previousUser;
-          throw error;
-        }
-        setView("home");
-        toast(`Ahora estás usando @${me().username}`);
-        break;
       case "open-register":
         setView("register");
         break;
-      case "reset-demo":
-        if (
-          confirm(
-            "¿Reiniciar la sesión de este navegador?",
-          )
-        ) {
-          await reset(listeners.signal);
-          setView("home");
-          toast("Sesión local reiniciada.");
-        }
+      case "logout":
+        await forumApi.logout();
+        await connect(listeners.signal);
+        setView("home");
+        toast("Cerraste sesión.");
         break;
       case "notifications":
         toast("¡Estás al día! No tenés notificaciones nuevas.");
@@ -294,7 +270,7 @@ export function mountPunto(
         await forumApi.changeMembership(me().id, itemId, "unir");
         await connect(listeners.signal);
         render();
-        toast(`Te uniste a r/${c.name}.`);
+        toast(`Te uniste a ${c.name}.`);
         break;
       }
       case "leave": {
@@ -534,7 +510,7 @@ export function mountPunto(
             break;
           }
           case "community": {
-            if (context.db.communities.length && totalKarma(me().id) < 10)
+            if (totalKarma(me().id) < 10)
               throw Error("Necesitás 10 de karma para crear una comunidad.");
             const name = trim("name", 21).toLowerCase(),
               description = trim("description", 400);
@@ -556,31 +532,18 @@ export function mountPunto(
             toast("¡Creaste tu comunidad y ya sos moderador/a!");
             break;
           }
-          case "register": {
-            const username = trim("username", 24),
-              email = trim("email", 150).toLowerCase();
-            if (!/^[a-zA-Z0-9_.]{3,24}$/.test(username))
-              throw Error(
-                "Nombre inválido. Usá letras, números, punto o guion bajo.",
-              );
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-              throw Error("Ingresá un email válido.");
-            if (
-              context.db.users.some(
-                (u) => u.username.toLowerCase() === username.toLowerCase(),
-              )
-            )
-              throw Error("El nombre de usuario ya está en uso.");
-            if (context.db.users.some((u) => u.email.toLowerCase() === email))
-              throw Error("Ese email ya está registrado.");
-            const u = await forumApi.register(username, email);
-            context.db.users.push(u);
-            context.db.currentUserId = u.id;
-            save();
+          case "login":
+            await forumApi.login(field("username").trim(), field("clave"));
+            await connect(listeners.signal);
+            setView("home");
+            toast("Iniciaste sesión.");
+            break;
+          case "register":
+            await forumApi.register(field("username").trim(), field("email").trim(), field("clave"));
+            await connect(listeners.signal);
             setView("home");
             toast("¡Tu cuenta fue creada con 0 karma!");
             break;
-          }
           case "report": {
             const pid = field("postId"),
               p = post(pid);
@@ -657,7 +620,7 @@ export function mountPunto(
   }
 
   app.innerHTML =
-    '<p class="card blank" role="status">Conectando con la API de Punto…</p>';
+    '<p class="card blank" role="status">Conectando con la API de VoZero…</p>';
   void connect(listeners.signal)
     .then(() => {
       if (!listeners.signal.aborted) {
@@ -668,7 +631,7 @@ export function mountPunto(
     .catch(() => {
       if (!listeners.signal.aborted) {
         app.innerHTML =
-          '<div class="card blank"><p>No pudimos conectar con la API de Punto. Revisá que el backend esté iniciado.</p><a class="btn btn-primary" href="">Reintentar</a></div>';
+          '<div class="card blank"><p>No pudimos conectar con la API de VoZero. Revisá que el backend esté iniciado.</p><a class="btn btn-primary" href="">Reintentar</a></div>';
       }
     });
 

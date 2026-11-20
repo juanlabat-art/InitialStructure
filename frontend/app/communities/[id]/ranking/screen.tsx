@@ -4,27 +4,8 @@ import { communityDetail } from "../screen";
 import type { ScreenContext } from "../../../shared/state";
 import { av, esc } from "../../../shared/presentation";
 
-function topUsers(context: ScreenContext, cid: string) {
-  const { db, user, postPoints, post, commentPoints } = context;
-  const scoreByUser = db.memberships
-    .filter((m) => m.communityId === cid)
-    .map((m) => ({
-      u: user(m.userId),
-      score:
-        db.posts
-          .filter((p) => p.communityId === cid && p.authorId === m.userId)
-          .reduce((s, p) => s + postPoints(p), 0) +
-        db.comments
-          .filter(
-            (co) =>
-              co.authorId === m.userId && post(co.postId)?.communityId === cid,
-          )
-          .reduce((s, co) => s + commentPoints(co), 0),
-    }))
-    .filter((x) => x.u)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
-  return `<div class="card" style="padding:12px 22px">${scoreByUser.map((x, i) => `<div class="rank-item"><span class="rank-num">${i + 1}</span>${av(x.u, "small")}<span class="rank-user">u/${esc(x.u?.username ?? "[eliminado]")}</span><span class="rank-score">${x.score} pts</span></div>`).join("")}</div>`;
+function topUsers(context: ScreenContext) {
+  return `<div class="card" style="padding:12px 22px">${context.ranking.map((entry, i) => `<div class="rank-item"><span class="rank-num">${i + 1}</span>${av(context.user(String(entry.id)), "small")}<span class="rank-user">u/${esc(entry.username)}</span><span class="rank-score">${entry.karma} karma · ${entry.votos_netos} votos netos</span></div>`).join("") || "<p>Todavía no hay votos en esta comunidad.</p>"}</div>`;
 }
 
 function renderScreen(context: ScreenContext) {

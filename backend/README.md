@@ -22,11 +22,25 @@ Estructura base de un proyecto en capas (routers, services, repositories, models
 
 ---
 
-## Backend de Punto
+## Backend de VoZero
 
 En Windows, `INICIAR.bat` (en la raíz) levanta FastAPI y el frontend juntos. Para arrancar solo FastAPI desde `backend/`, instalá `requirements.txt` y corré `python -m src.main`. Sin un archivo `.env`, se crea una base local SQLite con datos iniciales. Para usar PostgreSQL, seguí la configuración de la sección siguiente y creá la base antes de iniciar el servidor.
 
-El frontend consulta `GET /api/foro/` y usa los endpoints de usuarios, comunidades, publicaciones, comentarios, votos y acciones del foro para las escrituras. La selección de identidad es de demostración local.
+El frontend consulta `GET /api/foro/` y usa los endpoints de usuarios, comunidades, publicaciones, comentarios, votos y acciones del foro para las escrituras. Las cuentas usan contraseña y una cookie de sesión `HttpOnly` con un JWT firmado que vence a los siete días. La API comprueba la vigencia de la sesión en la base de datos y la revoca al cerrar sesión. Usá el menú de cuenta para entrar o registrarte. En Swagger podés ingresar con `POST /api/usuario/sesion`. El navegador envía la cookie al probar operaciones que requieren sesión.
+
+Las operaciones que cambian datos del foro requieren sesión. Las preguntas y respuestas anónimas siguen sin guardar el autor, pero requieren una cuenta para publicarse. Solo el autor puede borrar sus posts y comentarios, y solo el creador puede borrar su comunidad. Los moderadores pueden ocultar publicaciones y gestionar miembros según su rol.
+
+Configurá `VOZERO_JWT_SECRET` en `backend/.env` o en el entorno del servidor para conservar las sesiones entre reinicios y compartirlas entre procesos. Generá un valor privado con `python -c "from secrets import token_urlsafe; print(token_urlsafe(48))"`. Sin esa variable, el servidor usa una clave aleatoria que cambia al reiniciar. Las sesiones emitidas antes de pasar a JWT requieren iniciar sesión de nuevo.
+
+Las cuentas creadas antes de este cambio y las cuentas de ejemplo conservan sus datos. Para habilitar una de esas cuentas, iniciá la API una vez para actualizar el esquema y después ejecutá `python -m src.asignar_clave nombre_de_usuario` desde `backend/` con el mismo entorno que usa la API.
+
+En una base PostgreSQL vacía, podés cargar los datos de ejemplo con `src/db/tables.sql` y luego `src/db/inserts.sql` antes de iniciar la API. Las comunidades iniciales permiten participar y ganar karma con una cuenta nueva. En SQLite local se crean automáticamente.
+
+## Karma del foro
+
+Cada voto ajeno suma (+1) o resta (-1) al saldo de votos netos del autor. El karma es el nivel alcanzado con ese saldo, con un piso de cero. Del nivel 1 al 15, el costo adicional es el número del nivel. Desde el 16, se multiplica el costo anterior por 1,25, se redondea hacia arriba y se limita a 1.000 votos adicionales por nivel. Llegar a 10 requiere 55 votos netos. La API recalcula el karma guardado al arrancar y lo sincroniza con cada cambio de voto.
+
+`GET /api/usuarios/{id}/karma` devuelve el desglose de votos y karma por tipo de contenido. El total aplica la escala al saldo combinado. Los niveles calculados por separado no son aditivos.
 
 Con PostgreSQL, configurá `backend/.env` con tu `DATABASE_URL` y creá primero la base vacía en pgAdmin. FastAPI crea las tablas que falten y añade las columnas nuevas de publicaciones a las bases existentes. Aplicá `src/db/tables.sql` solo si querés crear las tablas manualmente en una base nueva.
 

@@ -11,6 +11,7 @@ from src.dtos.comunidad_dto import (
 from src.mappers.comunidad_mapper import to_comunidad_response
 from src.repositories.comunidad_repository import ComunidadRepository
 from src.repositories.usuario_repository import UsuarioRepository
+from src.services.foro_service import ForumService
 
 
 class ComunidadService:
@@ -46,8 +47,10 @@ class ComunidadService:
     def list_all(self) -> list[ComunidadResponseDTO]:
         return [to_comunidad_response(comunidad) for comunidad in self.repo.list_all()]
 
-    def update(self, comunidad_id: int, dto: UpdateComunidadDTO) -> ComunidadResponseDTO:
+    def update(self, comunidad_id: int, dto: UpdateComunidadDTO, actor: int) -> ComunidadResponseDTO:
         comunidad = self._buscar_comunidad(comunidad_id)
+        if ForumService(self.db).role(comunidad.id, actor) != "moderador":
+            raise HTTPException(403, "No tenés permiso para realizar esta acción")
 
         try:
             comunidad = self.repo.update(comunidad, dto)
@@ -59,8 +62,10 @@ class ComunidadService:
 
         return to_comunidad_response(comunidad)
 
-    def delete(self, comunidad_id: int) -> None:
+    def delete(self, comunidad_id: int, actor: int) -> None:
         comunidad = self._buscar_comunidad(comunidad_id)
+        if comunidad.creador_id != actor:
+            raise HTTPException(403, "Solo la cuenta creadora puede eliminar esta comunidad")
 
         try:
             self.repo.delete(comunidad)

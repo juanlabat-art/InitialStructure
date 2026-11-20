@@ -1,0 +1,46 @@
+from datetime import datetime
+
+from pydantic import BaseModel
+
+from src.dtos.comentario_dto import ComentarioResponseDTO
+from src.dtos.comunidad_dto import ComunidadResponseDTO
+from src.dtos.foro_dto import UsuarioForoDTO
+from src.dtos.post_dto import PostResponseDTO
+
+
+class PerfilDTO(UsuarioForoDTO):
+    cantidad_posts: int
+    comunidades: list[ComunidadResponseDTO]
+
+
+class KarmaDTO(BaseModel):
+    karma: int
+    karma_posts: int
+    karma_comentarios: int
+    votos_netos_posts: int
+    votos_netos_comentarios: int
+
+
+class ComentarioArbolDTO(ComentarioResponseDTO):
+    autor: UsuarioForoDTO
+    puntaje: int
+    respuestas: list["ComentarioArbolDTO"]
+
+
+class PostConPuntajeDTO(PostResponseDTO):
+    puntaje: int
+
+
+class PostReportadoDTO(PostResponseDTO):
+    cantidad_reportes: int
+
+
+class PostGuardadoDetalleDTO(PostResponseDTO):
+    fecha_guardado: datetime
+
+
+class UsuarioRankingDTO(BaseModel):
+    id: int
+    username: str
+    karma: int
+    votos_netos: int

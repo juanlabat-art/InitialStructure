@@ -17,7 +17,7 @@ class MembershipAction(Actor):
 
 
 class CommentVote(Actor):
-    valor: Literal[-1, 0, 1]
+    valor: Literal[-1, 1]
 
 
 class PostAction(Actor):

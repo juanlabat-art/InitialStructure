@@ -91,4 +91,4 @@ export const ico = (name: string, size = 18) =>
 export const av = (u: User | undefined, size = "") =>
   `<span class="avatar ${esc(u?.color || "")} ${size}" title="${esc(u?.username || "usuario")}">${esc(initials(u?.username || "u"))}</span>`;
 export const cicon = (c: Community | undefined, size = 28) =>
-  `<span class="community-icon" style="background:${esc(c?.bg || "#ebeaff")};${size > 30 ? `width:${size}px;height:${size}px;font-size:${size * 0.43}px` : ""}">${c?.emoji || "💬"}</span>`;
+  `<span class="community-icon" style="background:${esc(c?.bg || "var(--selected)")};${size > 30 ? `width:${size}px;height:${size}px;font-size:${size * 0.43}px` : ""}">${c?.emoji || "💬"}</span>`;

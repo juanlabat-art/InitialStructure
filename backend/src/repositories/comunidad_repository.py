@@ -28,9 +28,6 @@ class ComunidadRepository:
     def find_by_id(self, comunidad_id: int) -> Comunidad | None:
         return self.db.get(Comunidad, comunidad_id)
 
-    def has_communities(self) -> bool:
-        return self.db.query(Comunidad.id).first() is not None
-
     def list_all(self) -> list[Comunidad]:
         return self.db.query(Comunidad).order_by(Comunidad.id).all()
 

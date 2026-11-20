@@ -8,13 +8,13 @@
 --          RESTART IDENTITY CASCADE;
 
 -- ---------- USUARIOS (ids 1 a 6) ----------
-INSERT INTO usuario (username, email, karma) VALUES
-('martina_dev',  'martina@mail.com',  150),
-('lucas_gamer',  'lucas@mail.com',     75),
-('sofia_cocina', 'sofia@mail.com',    230),
-('diego_futbol', 'diego@mail.com',     40),
-('vale_code',    'valentina@mail.com', 95),
-('tomas_memes',  'tomas@mail.com',     10);
+INSERT INTO usuario (username, email) VALUES
+('martina_dev',  'martina@mail.com'),
+('lucas_gamer',  'lucas@mail.com'),
+('sofia_cocina', 'sofia@mail.com'),
+('diego_futbol', 'diego@mail.com'),
+('vale_code',    'valentina@mail.com'),
+('tomas_memes',  'tomas@mail.com');
 
 -- ---------- COMUNIDADES (ids 1 a 5) ----------
 INSERT INTO comunidad (nombre, descripcion, creador_id, es_nsfw) VALUES

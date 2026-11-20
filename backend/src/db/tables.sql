@@ -8,6 +8,7 @@ CREATE TABLE usuario (
     id              SERIAL PRIMARY KEY,
     username        VARCHAR(30)  NOT NULL UNIQUE,
     email           VARCHAR(255) NOT NULL UNIQUE,
+    clave_hash      VARCHAR(161),
     karma           INTEGER      NOT NULL DEFAULT 0,
     fecha_registro  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -114,4 +115,12 @@ CREATE TABLE acceso_pregunta_anonima (
     pregunta_id INTEGER NOT NULL REFERENCES pregunta_anonima(id),
     sesion_hash VARCHAR(64) NOT NULL,
     PRIMARY KEY (pregunta_id, sesion_hash)
+);
+
+-- ---------- SESIONES DE CUENTAS ----------
+
+CREATE TABLE sesiones_usuario (
+    token_hash  VARCHAR(64) PRIMARY KEY,
+    usuario_id  INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    vence       TIMESTAMP NOT NULL
 );

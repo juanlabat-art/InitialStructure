@@ -45,12 +45,16 @@ class PostService:
     def get_by_id(self, post_id: int) -> PostResponseDTO:
         return to_post_response(self._buscar_visible(post_id))
 
-    def update(self, post_id: int, dto: UpdatePostDTO) -> PostResponseDTO:
+    def update(self, post_id: int, dto: UpdatePostDTO, actor: int) -> PostResponseDTO:
         post = self._buscar_visible(post_id)
+        if post.autor_id != actor:
+            raise HTTPException(403, "No tenés permiso para realizar esta acción")
         return to_post_response(self.repo.update(post, dto))
 
-    def delete(self, post_id: int) -> None:
+    def delete(self, post_id: int, actor: int) -> None:
         post = self._buscar_visible(post_id)
+        if post.autor_id != actor:
+            raise HTTPException(403, "No tenés permiso para realizar esta acción")
         try:
             self.repo.delete(post)
         except IntegrityError as error:

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
+from src.services.sesion_service import sesion_actual, usuario_actual, verificar_actor
 from src.dtos.comentario_dto import (
     ComentarioResponseDTO,
     CreateComentarioDTO,
@@ -27,8 +28,10 @@ router = APIRouter(
 )
 def create_comentario(
     payload: CreateComentarioSchema,
+    actor=Depends(usuario_actual),
     db: Session = Depends(get_db),
 ):
+    verificar_actor(actor, payload.autor_id)
     dto = CreateComentarioDTO(**payload.model_dump())
     return ComentarioService(db).create(dto)
 
@@ -36,7 +39,7 @@ def create_comentario(
 @router.get("/", response_model=list[ComentarioResponseDTO])
 def list_comentarios(
     post_id: int = Query(gt=0),
-    usuario_id: int | None = Query(default=None, gt=0),
+    usuario_id=Depends(sesion_actual),
     db: Session = Depends(get_db),
 ):
     return ComentarioService(db).list_by_post(post_id, usuario_id)
@@ -48,7 +51,7 @@ def list_comentarios(
 )
 def get_comentario(
     comentario_id: int,
-    usuario_id: int | None = Query(default=None, gt=0),
+    usuario_id=Depends(sesion_actual),
     db: Session = Depends(get_db),
 ):
     return ComentarioService(db).get_by_id(comentario_id, usuario_id)
@@ -61,10 +64,11 @@ def get_comentario(
 def update_comentario(
     comentario_id: int,
     payload: UpdateComentarioSchema,
+    actor=Depends(usuario_actual),
     db: Session = Depends(get_db),
 ):
     dto = UpdateComentarioDTO(**payload.model_dump())
-    return ComentarioService(db).update(comentario_id, dto)
+    return ComentarioService(db).update(comentario_id, dto, actor)
 
 
 @router.delete(
@@ -73,7 +77,8 @@ def update_comentario(
 )
 def delete_comentario(
     comentario_id: int,
+    actor=Depends(usuario_actual),
     db: Session = Depends(get_db),
 ):
-    ComentarioService(db).delete(comentario_id)
+    ComentarioService(db).delete(comentario_id, actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

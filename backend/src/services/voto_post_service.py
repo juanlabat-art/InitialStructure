@@ -36,7 +36,7 @@ class VotoPostService:
                 dto.post_id,
             )
             if post.autor_id == dto.usuario_id:
-                raise HTTPException(403, "No pod?s votar tu propia publicaci?n")
+                raise HTTPException(403, "No podés votar tu propia publicación")
 
             autor = self.db.get(Usuario, post.autor_id, with_for_update=True)
             if voto is not None and voto.valor == dto.valor:

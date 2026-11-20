@@ -1,4 +1,7 @@
 from pathlib import Path
+from secrets import token_urlsafe
+
+from pydantic import Field, SecretStr
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,6 +11,9 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "sqlite:///./punto-local.db"
     PORT: int = 8000
+    VOZERO_JWT_SECRET: SecretStr = Field(
+        default_factory=lambda: SecretStr(token_urlsafe(48)), min_length=32,
+    )
 
 
 settings = Settings()

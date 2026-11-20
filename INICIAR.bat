@@ -34,8 +34,8 @@ popd
 if not "%PUNTO_NPM_RESULT%"=="0" goto :error
 
 echo Iniciando los dos servicios...
-start "Punto - Backend" /D "%~dp0backend" cmd /k ".venv\Scripts\python.exe -m src.main"
-start "Punto - Frontend" /D "%~dp0frontend" cmd /k "npm.cmd run dev -- --hostname 127.0.0.1 --port 3000"
+start "VoZero - Backend" /D "%~dp0backend" cmd /k ".venv\Scripts\python.exe -m src.main"
+start "VoZero - Frontend" /D "%~dp0frontend" cmd /k "npm.cmd run dev -- --hostname 127.0.0.1 --port 3000"
 echo Frontend: http://localhost:3000
 echo API: http://127.0.0.1:8000/docs ^(puerto predeterminado^)
 exit /b 0

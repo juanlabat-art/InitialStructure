@@ -18,6 +18,7 @@ class UsuarioForoDTO(BaseModel):
 
 
 class ForoDTO(BaseModel):
+    usuario_actual_id: int | None
     usuarios: list[UsuarioForoDTO]
     comunidades: list[ComunidadResponseDTO]
     posts: list[PostResponseDTO]

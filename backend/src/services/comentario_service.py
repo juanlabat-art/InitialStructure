@@ -90,8 +90,11 @@ class ComentarioService:
         self,
         comentario_id: int,
         dto: UpdateComentarioDTO,
+        actor: int,
     ) -> ComentarioResponseDTO:
         comentario = self._buscar_comentario(comentario_id)
+        if comentario.autor_id != actor:
+            raise HTTPException(403, "No tenés permiso para realizar esta acción")
         self._buscar_post_visible(comentario.post_id)
 
         if comentario.eliminado:
@@ -103,8 +106,10 @@ class ComentarioService:
         actualizado = self.repo.update(comentario, dto)
         return to_comentario_response(actualizado)
 
-    def delete(self, comentario_id: int) -> None:
+    def delete(self, comentario_id: int, actor: int) -> None:
         comentario = self._buscar_comentario(comentario_id)
+        if comentario.autor_id != actor:
+            raise HTTPException(403, "No tenés permiso para realizar esta acción")
         self._buscar_post_visible(comentario.post_id)
         self.repo.delete(comentario)
 

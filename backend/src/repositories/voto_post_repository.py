@@ -1,8 +1,7 @@
-from sqlalchemy import case, func, select, update
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from src.db.models.post_model import Post
-from src.db.models.usuario_model import Usuario
 from src.db.models.voto_post_model import VotoPost
 
 
@@ -55,20 +54,8 @@ class VotoPostRepository:
         self.db.delete(voto)
         self.db.flush()
 
-    def actualizar_karma(
-        self,
-        autor_id: int,
-        diferencia: int,
-    ) -> None:
-        consulta = (
-            update(Usuario)
-            .where(Usuario.id == autor_id)
-            .values(karma=Usuario.karma + diferencia)
-        )
-        self.db.execute(consulta)
-
     def get_puntaje(self, post_id: int):
-        consulta = select(
+        consulta = (select(
             func.count(
                 case((VotoPost.valor == 1, 1))
             ).label("positivos"),
@@ -78,6 +65,7 @@ class VotoPostRepository:
             func.coalesce(
                 func.sum(VotoPost.valor), 0
             ).label("puntaje"),
-        ).where(VotoPost.post_id == post_id)
+        ).join(Post, Post.id == VotoPost.post_id)
+            .where(VotoPost.post_id == post_id, VotoPost.usuario_id != Post.autor_id))
 
         return self.db.execute(consulta).one()

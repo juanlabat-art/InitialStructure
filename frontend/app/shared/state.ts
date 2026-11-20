@@ -23,11 +23,11 @@ export function createScreenContext(
   query?: string,
   targetId?: string,
 ) {
-  let db = browserState();
+  const db = browserState();
+  let karma: Awaited<ReturnType<typeof forumApi.karma>> | null = null;
+  let ranking: Awaited<ReturnType<typeof forumApi.ranking>> = [];
   try {
     const session = JSON.parse(localStorage.getItem(STORAGE) ?? "null");
-    if (typeof session?.currentUserId === "string")
-      db.currentUserId = session.currentUserId;
     if (
       typeof session?.sessionToken === "string" &&
       /^[a-f0-9-]{36}$/.test(session.sessionToken)
@@ -38,10 +38,10 @@ export function createScreenContext(
   }
   const save = () => {
     try {
-      const { currentUserId, sessionToken } = db;
+      const { sessionToken } = db;
       localStorage.setItem(
         STORAGE,
-        JSON.stringify({ currentUserId, sessionToken }),
+        JSON.stringify({ sessionToken }),
       );
     } catch (error) {
       console.warn("Storage unavailable", error);
@@ -147,13 +147,14 @@ export function createScreenContext(
     };
   }
   async function connect(signal: AbortSignal) {
-    let data = await forumApi.load(db.currentUserId, db.sessionToken, signal);
-    const active =
-      data.users.find((user) => user.id === db.currentUserId) ?? data.users[0];
-    if (active && active.id !== db.currentUserId) {
-      data = await forumApi.load(active.id, db.sessionToken, signal);
+    const data = await forumApi.load(db.sessionToken, signal);
+    Object.assign(db, data);
+    if (view === "profile") {
+      karma = db.currentUserId ? await forumApi.karma(db.currentUserId, signal) : null;
     }
-    Object.assign(db, data, { currentUserId: active?.id ?? "" });
+    if (view === "communityRanking" && routeId && comm(routeId)) {
+      ranking = await forumApi.ranking(routeId, signal);
+    }
     if (
       ui.postId &&
       (!routeId || !db.posts.some((post) => post.id === ui.postId))
@@ -164,10 +165,6 @@ export function createScreenContext(
     const currentPost = post(ui.postId);
     if (currentPost) ui.communityId = currentPost.communityId;
     save();
-  }
-  async function reset(signal: AbortSignal) {
-    db = browserState();
-    await connect(signal);
   }
   return {
     get db() {
@@ -191,9 +188,13 @@ export function createScreenContext(
     numberOfReplies,
     numberOfAnonAnswers,
     votesFor,
-    save,
     connect,
-    reset,
+    get karma() {
+      return karma;
+    },
+    get ranking() {
+      return ranking;
+    },
   };
 }
 

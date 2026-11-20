@@ -1,12 +1,10 @@
 from pydantic import BaseModel, EmailStr, Field
 
 
-class CreateUsuarioSchema(BaseModel):
-    username: str = Field(max_length=30)
+class CredencialesUsuarioSchema(BaseModel):
+    username: str = Field(min_length=3, max_length=30, pattern=r"^[A-Za-z0-9_.]+$")
+    clave: str = Field(min_length=8, max_length=128)
+
+
+class CreateUsuarioSchema(CredencialesUsuarioSchema):
     email: EmailStr
-
-
-class UpdateUsuarioSchema(BaseModel):
-    # TODO: completar con los campos opcionales que se permiten actualizar.
-    # Tip: todos los campos van como Optional / con default None.
-    ...

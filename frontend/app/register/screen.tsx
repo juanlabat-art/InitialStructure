@@ -1,16 +1,27 @@
 "use client";
 import PuntoScreen from "../punto-screen";
 import { formPanel } from "../shared/form-panel";
-import { ico } from "../shared/presentation";
 
-function registerModal() {
+function accountForms() {
   return formPanel(
-    "Crear una cuenta",
-    `<p class="page-subtitle" style="margin-bottom:20px">Empezá con 0 karma. Después, cada voto que recibas suma o resta.</p><form data-form="register"><div class="form-field"><label>Nombre de usuario *</label><input name="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_.]{3,24}" required placeholder="tu.nombre" /></div><div class="form-field"><label>Email *</label><input type="email" name="email" required placeholder="tunombre@ejemplo.com"/></div><div class="hint-box">${ico("info", 16)} Registro local de demostración: la autenticación real se implementa en tu API de Python.</div><div class="modal-footer"><button class="btn btn-primary" type="submit">Crear cuenta</button></div></form>`,
+    "Tu cuenta de VoZero",
+    `<form data-form="login">
+      <h2>Iniciar sesión</h2>
+      <div class="form-field"><label for="login-user">Nombre de usuario</label><input id="login-user" name="username" autocomplete="username" required /></div>
+      <div class="form-field"><label for="login-password">Contraseña</label><input id="login-password" name="clave" type="password" autocomplete="current-password" required /></div>
+      <button class="btn btn-primary" type="submit">Ingresar</button>
+    </form>
+    <form data-form="register">
+      <h2>Crear cuenta</h2>
+      <div class="form-field"><label for="new-user">Nombre de usuario</label><input id="new-user" name="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_.]+" autocomplete="username" required /></div>
+      <div class="form-field"><label for="new-email">Email</label><input id="new-email" name="email" type="email" autocomplete="email" required /></div>
+      <div class="form-field"><label for="new-password">Contraseña (mínimo 8 caracteres)</label><input id="new-password" name="clave" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></div>
+      <button class="btn btn-primary" type="submit">Crear cuenta</button>
+    </form>`,
     true,
   );
 }
 
 export default function Screen() {
-  return <PuntoScreen view="register" renderScreen={registerModal} />;
+  return <PuntoScreen view="register" renderScreen={accountForms} />;
 }

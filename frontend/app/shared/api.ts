@@ -36,6 +36,7 @@ interface ApiComment {
   eliminado: boolean;
 }
 interface ApiForum {
+  usuario_actual_id: number | null;
   membresias: {
     usuario_id: number;
     comunidad_id: number;
@@ -148,7 +149,7 @@ function community(row: ApiCommunity): Community {
     nsfw: row.es_nsfw,
     baseMembers: 0,
     emoji: "💬",
-    bg: "#eeeaff",
+    bg: "var(--selected)",
     createdAt: date(row.fecha_creacion),
   };
 }
@@ -183,9 +184,8 @@ function comment(row: ApiComment): Comment {
 }
 
 export const forumApi = {
-  async load(userId: string, session: string, signal: AbortSignal) {
-    const query = /^[1-9]\d*$/.test(userId) ? "?usuario_id=" + userId : "";
-    const data = await request<ApiForum>("/foro" + query, {
+  async load(session: string, signal: AbortSignal) {
+    const data = await request<ApiForum>("/foro", {
       signal,
       headers: { "X-Punto-Session": session },
     });
@@ -245,6 +245,7 @@ export const forumApi = {
         sessionToken: session,
       })),
       commentVotes,
+      currentUserId: data.usuario_actual_id === null ? "" : String(data.usuario_actual_id),
       users: data.usuarios.map(user),
       communities: data.comunidades.map(community),
       posts: data.posts.map((row) => ({
@@ -263,9 +264,29 @@ export const forumApi = {
       postVotes: votes,
     };
   },
-  async register(username: string, email: string) {
+  async register(username: string, email: string, clave: string) {
     return user(
-      await mutation<ApiUser>("/usuario", "POST", { username, email }),
+      await mutation<ApiUser>("/usuario", "POST", { username, email, clave }),
+    );
+  },
+  login(username: string, clave: string) {
+    return mutation<ApiUser>("/usuario/sesion", "POST", { username, clave });
+  },
+  logout() {
+    return mutation<void>("/usuario/sesion", "DELETE");
+  },
+  karma(userId: string, signal: AbortSignal) {
+    return request<{
+      karma: number;
+      karma_posts: number;
+      karma_comentarios: number;
+      votos_netos_posts: number;
+      votos_netos_comentarios: number;
+    }>("/usuarios/" + apiId(userId) + "/karma", { signal });
+  },
+  ranking(communityId: string, signal: AbortSignal) {
+    return request<{ id: number; username: string; karma: number; votos_netos: number }[]>(
+      "/comunidades/" + apiId(communityId) + "/top-usuarios", { signal },
     );
   },
   async createCommunity(

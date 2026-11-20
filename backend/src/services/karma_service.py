@@ -33,11 +33,12 @@ def votos_por_autor(modelo, votos, clave):
 
 
 def desglose_votos(db, usuario_id):
-    posts = votos_por_autor(Post, VotoPost.__table__, VotoPost.post_id)
-    comentarios = votos_por_autor(Comentario, comment_votes, comment_votes.c.comentario_id)
-    return tuple(db.scalar(consulta.where(modelo.autor_id == usuario_id).with_only_columns(func.sum(columna))) or 0
-                 for consulta, modelo, columna in (
-                     (posts, Post, VotoPost.valor), (comentarios, Comentario, comment_votes.c.valor)))
+    posts = votos_por_autor(Post, VotoPost.__table__, VotoPost.post_id).subquery()
+    comentarios = votos_por_autor(Comentario, comment_votes, comment_votes.c.comentario_id).subquery()
+    return (
+        db.scalar(select(posts.c.total).where(posts.c.autor_id == usuario_id)) or 0,
+        db.scalar(select(comentarios.c.total).where(comentarios.c.autor_id == usuario_id)) or 0,
+    )
 
 
 def actualizar_karma(db, autor):
@@ -46,7 +47,8 @@ def actualizar_karma(db, autor):
 
 
 def reconciliar_karma(db):
+    usuarios = db.scalars(select(Usuario).order_by(Usuario.id).with_for_update()).all()
     posts = dict(db.execute(votos_por_autor(Post, VotoPost.__table__, VotoPost.post_id)).all())
     comentarios = dict(db.execute(votos_por_autor(Comentario, comment_votes, comment_votes.c.comentario_id)).all())
-    for usuario in db.scalars(select(Usuario).order_by(Usuario.id).with_for_update()):
+    for usuario in usuarios:
         usuario.karma = karma_por_votos(posts.get(usuario.id, 0) + comentarios.get(usuario.id, 0))

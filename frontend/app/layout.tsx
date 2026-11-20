@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "punto. · Ideas sin eco",
+  title: "VoZero · Ideas sin eco",
+  icons: { icon: { url: "/vozero-logo.jpg", type: "image/jpeg" } },
   description:
     "Un foro de comunidades donde las ideas importan más que los nombres.",
 };
