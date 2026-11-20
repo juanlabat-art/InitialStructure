@@ -36,9 +36,10 @@ def create_comentario(
 @router.get("/", response_model=list[ComentarioResponseDTO])
 def list_comentarios(
     post_id: int = Query(gt=0),
+    usuario_id: int | None = Query(default=None, gt=0),
     db: Session = Depends(get_db),
 ):
-    return ComentarioService(db).list_by_post(post_id)
+    return ComentarioService(db).list_by_post(post_id, usuario_id)
 
 
 @router.get(
@@ -47,9 +48,10 @@ def list_comentarios(
 )
 def get_comentario(
     comentario_id: int,
+    usuario_id: int | None = Query(default=None, gt=0),
     db: Session = Depends(get_db),
 ):
-    return ComentarioService(db).get_by_id(comentario_id)
+    return ComentarioService(db).get_by_id(comentario_id, usuario_id)
 
 
 @router.put(

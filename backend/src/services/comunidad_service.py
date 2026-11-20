@@ -20,17 +20,21 @@ class ComunidadService:
         self.usuarios = UsuarioRepository(db)
 
     def create(self, dto: CreateComunidadDTO) -> ComunidadResponseDTO:
-        if self.usuarios.find_by_id(dto.creador_id) is None:
+        creator = self.usuarios.find_by_id(dto.creador_id)
+        if creator is None:
             raise HTTPException(status_code=404, detail="El usuario creador no existe")
+
+        if creator.karma < 10 and self.repo.has_communities():
+            raise HTTPException(status_code=403, detail="Necesitás 10 de karma para crear una comunidad")
 
         try:
             comunidad = self.repo.create(dto)
         except IntegrityError as error:
             self.db.rollback()
-            codigo = self._codigo_postgres(error)
-            if codigo == "23505":
+            codigo = self._codigo_integridad(error)
+            if codigo in {"23505", "SQLITE_CONSTRAINT_UNIQUE"}:
                 raise HTTPException(status_code=409, detail="Ese nombre ya está en uso") from error
-            if codigo == "23503":
+            if codigo in {"23503", "SQLITE_CONSTRAINT_FOREIGNKEY"}:
                 raise HTTPException(status_code=404, detail="El usuario creador no existe") from error
             raise
 
@@ -49,7 +53,7 @@ class ComunidadService:
             comunidad = self.repo.update(comunidad, dto)
         except IntegrityError as error:
             self.db.rollback()
-            if self._codigo_postgres(error) == "23505":
+            if self._codigo_integridad(error) in {"23505", "SQLITE_CONSTRAINT_UNIQUE"}:
                 raise HTTPException(status_code=409, detail="Ese nombre ya está en uso") from error
             raise
 
@@ -62,7 +66,7 @@ class ComunidadService:
             self.repo.delete(comunidad)
         except IntegrityError as error:
             self.db.rollback()
-            if self._codigo_postgres(error) == "23503":
+            if self._codigo_integridad(error) in {"23503", "SQLITE_CONSTRAINT_FOREIGNKEY"}:
                 raise HTTPException(
                     status_code=409,
                     detail="La comunidad tiene posts u otros registros asociados",
@@ -76,5 +80,9 @@ class ComunidadService:
         return comunidad
 
     @staticmethod
-    def _codigo_postgres(error: IntegrityError) -> str | None:
-        return getattr(error.orig, "sqlstate", None) or getattr(error.orig, "pgcode", None)
+    def _codigo_integridad(error: IntegrityError) -> str | None:
+        return (
+            getattr(error.orig, "sqlstate", None)
+            or getattr(error.orig, "pgcode", None)
+            or getattr(error.orig, "sqlite_errorname", None)
+        )

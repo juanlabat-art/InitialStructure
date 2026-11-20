@@ -1,13 +1,16 @@
-from pydantic_settings import BaseSettings
+from pathlib import Path
+from secrets import token_urlsafe
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
-    PORT: int = 8000
-    JWT_SECRET: str
+    model_config = SettingsConfigDict(env_file=Path(__file__).resolve().parents[2] / ".env")
 
-    class Config:
-        env_file = ".env"
+    DATABASE_URL: str = "sqlite:///./punto-local.db"
+    PORT: int = 8000
+    JWT_SECRET: str = Field(default_factory=token_urlsafe)
 
 
 settings = Settings()

@@ -1,5 +1,7 @@
 ## Como arrancar el proyecto
 
+Para iniciar Punto completo en Windows, ejecutá `INICIAR.bat` desde la raíz y abrí http://localhost:3000. La primera ejecución instala las dependencias y requiere Python y Node.js. Los detalles de configuración están en [el README del frontend](frontend/README.md).
+
 Lo primero que deben saber es que el proyecto tiene 2 partes. Un fronted y un backend.
 
 El proyecto debe tener un diferencial/valor agregado DISTINTO a la aplicacion/web elegida.

@@ -9,6 +9,8 @@ class UpdatePostDTO(BaseModel):
 
 
 class CreatePostDTO(UpdatePostDTO):
+    es_pregunta: bool = False
+    opinar_primero: bool = False
     comunidad_id: int
     autor_id: int
 
@@ -23,3 +25,5 @@ class PostResponseDTO(BaseModel):
     contenido: str | None
     fecha: datetime
     oculto: bool
+    es_pregunta: bool
+    opinar_primero: bool

@@ -1,0 +1,73 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Header
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from src.db.connection import get_db
+from src.db.models.comentario_model import Comentario
+from src.db.models.post_model import Post
+from src.db.models.usuario_model import Usuario
+from src.db.models.voto_post_model import VotoPost
+from src.dtos.foro_dto import ForoDTO, UsuarioForoDTO
+from src.mappers.comentario_mapper import to_comentario_response
+from src.mappers.post_mapper import to_post_response
+from src.mappers.voto_post_mapper import to_voto_post_response
+from src.schemas.foro_schema import CommentVote, CreateAnswer, CreateQuestion, MembershipAction, PostAction
+from src.services.comunidad_service import ComunidadService
+from src.services.foro_service import ForumService
+
+router = APIRouter(prefix="/foro", tags=["foro"])
+SessionHeader = Annotated[str, Header(alias="X-Punto-Session", min_length=16, max_length=128)]
+OptionalSessionHeader = Annotated[str | None, Header(alias="X-Punto-Session", min_length=16, max_length=128)]
+
+
+@router.get("/", response_model=ForoDTO)
+def leer_foro(usuario_id: int | None = None, session: OptionalSessionHeader = None, db: Session = Depends(get_db)):
+    forum = ForumService(db)
+    visibility = forum.post_visibility(usuario_id)
+    usuarios = db.scalars(select(Usuario).order_by(Usuario.id)).all()
+    posts = db.scalars(select(Post).where(visibility).order_by(Post.fecha.desc(), Post.id.desc()))
+    comentarios = db.scalars(
+        select(Comentario).join(Post, Comentario.post_id == Post.id)
+        .where(visibility, forum.comment_visibility(usuario_id))
+        .order_by(Comentario.fecha, Comentario.id)
+    )
+    puntajes = db.execute(
+        select(VotoPost.post_id, func.sum(VotoPost.valor)).group_by(VotoPost.post_id)
+    )
+    votos = db.scalars(select(VotoPost).where(VotoPost.usuario_id == usuario_id)) if usuario_id else []
+    return ForoDTO(
+        usuarios=[UsuarioForoDTO.model_validate(usuario) for usuario in usuarios],
+        comunidades=ComunidadService(db).list_all(),
+        posts=[to_post_response(post) for post in posts],
+        comentarios=[to_comentario_response(comentario) for comentario in comentarios],
+        puntajes=dict(puntajes.tuples().all()),
+        votos=[to_voto_post_response(voto) for voto in votos],
+        **forum.extra_data(usuario_id, session),
+    )
+
+
+@router.put("/comunidades/{community_id}/miembros", status_code=204)
+def update_membership(community_id: int, payload: MembershipAction, db: Session = Depends(get_db)):
+    ForumService(db).membership_action(community_id, payload)
+
+
+@router.put("/posts/{post_id}", status_code=204)
+def update_post(post_id: int, payload: PostAction, db: Session = Depends(get_db)):
+    ForumService(db).post_action(post_id, payload)
+
+
+@router.put("/comentarios/{comment_id}/voto", status_code=204)
+def comment_vote(comment_id: int, payload: CommentVote, db: Session = Depends(get_db)):
+    ForumService(db).vote_comment(comment_id, payload)
+
+
+@router.post("/anonimo", status_code=201)
+def create_question(payload: CreateQuestion, db: Session = Depends(get_db)):
+    return ForumService(db).create_question(payload)
+
+
+@router.post("/anonimo/{question_id}/respuestas", status_code=204)
+def create_answer(question_id: int, payload: CreateAnswer, session: SessionHeader, db: Session = Depends(get_db)):
+    ForumService(db).create_answer(question_id, session, payload)
