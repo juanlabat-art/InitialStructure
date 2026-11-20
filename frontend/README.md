@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# punto. · Ideas sin eco
 
-## Getting Started
+Frontend interactivo de un foro de comunidades, desarrollado en TypeScript con Next.js.
 
-First, run the development server:
+## Ejecutar
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+En Windows, abrí `INICIAR.bat` desde la raíz del repositorio. Requiere Python 3.12 o 3.13 y Node.js 20.9 o superior. El script instala las dependencias, levanta ambos servicios en ventanas separadas y deja el sitio en http://localhost:3000 y Swagger en http://127.0.0.1:8000/docs.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sin `backend/.env`, FastAPI crea `backend/punto-local.db` con SQLite y carga cuentas, comunidades y publicaciones iniciales. Para usar PostgreSQL, configurá `backend/.env` a partir de `backend/.env.example` y creá la base en pgAdmin. FastAPI prepara las tablas al iniciar. Si cambiás el puerto de FastAPI, configurá `PUNTO_BACKEND_URL` en `frontend/.env.local` con el origen correspondiente.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Para iniciar los servicios por separado, seguí los comandos del README del backend y ejecutá `npm ci` y `npm run dev -- --hostname 127.0.0.1` en `frontend/`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Pantallas y rutas
 
-## Learn More
+| Pantalla | URL |
+| --- | --- |
+| Inicio | `/` |
+| Comunidades | `/communities` |
+| Detalle de comunidad | `/communities/c2` |
+| Publicación y comentarios | `/post/4` |
+| Preguntas anónimas | `/anonymous` |
+| Detalle de pregunta anónima | `/anonymous/a1` |
+| Mi perfil | `/myprofile` |
+| Guardados | `/saved` |
+| Búsqueda | `/search?q=Python` |
+| Ranking de una comunidad | `/communities/c2/ranking` |
+| Moderación de una comunidad | `/communities/c2/moderation` |
+| Crear publicación | `/post/new` |
+| Crear pregunta anónima | `/anonymous/new` |
+| Crear comunidad | `/communities/new` |
+| Registro | `/register` |
+| Reportar publicación | `/post/4/report` |
+| Banear miembro | `/communities/c2/moderation/ban/u2` |
 
-To learn more about Next.js, take a look at the following resources:
+Las comunidades incluyen publicaciones, ranking y moderación para las cuentas con ese rol.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Desde el avatar podés elegir una cuenta de demostración o registrar una nueva. La selección de cuenta es para pruebas locales.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+El frontend consulta FastAPI a través de `/api` en el mismo origen. Con `backend/.env` apuntando a PostgreSQL, Punto guarda en esa base los usuarios, comunidades, publicaciones, comentarios, votos, membresías, guardados, reportes, acciones de moderación y preguntas y respuestas anónimas. El navegador solo conserva la cuenta seleccionada y la sesión del espacio anónimo.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Si la base está vacía, registrá una cuenta y creá la primera comunidad. Las publicaciones tendrán los IDs que asigne la base.

@@ -14,5 +14,7 @@ class UpdatePostSchema(BaseModel):
 
 
 class CreatePostSchema(UpdatePostSchema):
+    es_pregunta: bool = False
+    opinar_primero: bool = False
     comunidad_id: int = Field(gt=0)
     autor_id: int = Field(gt=0)

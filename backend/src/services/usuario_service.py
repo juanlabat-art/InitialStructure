@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.dtos.usuario_dto import CreateUsuarioDTO, UsuarioResponseDTO
@@ -7,6 +9,7 @@ from src.repositories.usuario_repository import UsuarioRepository
 
 class UsuarioService:
     def __init__(self, db: Session):
+        self.db = db
         self.repo = UsuarioRepository(db)
 
     def create(self, dto: CreateUsuarioDTO) -> UsuarioResponseDTO:

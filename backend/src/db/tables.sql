@@ -28,7 +28,9 @@ CREATE TABLE post (
     titulo        VARCHAR(300) NOT NULL,
     contenido     TEXT,
     fecha         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    oculto        BOOLEAN      NOT NULL DEFAULT FALSE
+    oculto        BOOLEAN      NOT NULL DEFAULT FALSE,
+    es_pregunta   BOOLEAN      NOT NULL DEFAULT FALSE,
+    opinar_primero BOOLEAN     NOT NULL DEFAULT FALSE
 );
  
 CREATE TABLE comentario (
@@ -89,4 +91,27 @@ CREATE TABLE posts_guardados (
     post_id     INTEGER   NOT NULL REFERENCES post(id),
     fecha       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (usuario_id, post_id)
+);
+
+-- ---------- PREGUNTAS ANÓNIMAS ----------
+
+CREATE TABLE pregunta_anonima (
+    id SERIAL PRIMARY KEY,
+    titulo VARCHAR(300) NOT NULL,
+    contenido TEXT NOT NULL,
+    opinar_primero BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE respuesta_anonima (
+    id SERIAL PRIMARY KEY,
+    pregunta_id INTEGER NOT NULL REFERENCES pregunta_anonima(id),
+    texto TEXT NOT NULL,
+    fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE acceso_pregunta_anonima (
+    pregunta_id INTEGER NOT NULL REFERENCES pregunta_anonima(id),
+    sesion_hash VARCHAR(64) NOT NULL,
+    PRIMARY KEY (pregunta_id, sesion_hash)
 );

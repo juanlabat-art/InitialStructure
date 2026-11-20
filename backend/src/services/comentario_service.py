@@ -13,6 +13,7 @@ from src.mappers.comentario_mapper import to_comentario_response
 from src.repositories.comentario_repository import ComentarioRepository
 from src.repositories.post_repository import PostRepository
 from src.repositories.usuario_repository import UsuarioRepository
+from src.services.foro_service import ForumService
 
 
 class ComentarioService:
@@ -26,7 +27,9 @@ class ComentarioService:
         self,
         dto: CreateComentarioDTO,
     ) -> ComentarioResponseDTO:
-        self._buscar_post_visible(dto.post_id)
+        post = self._buscar_post_visible(dto.post_id)
+        forum = ForumService(self.db)
+        forum.require_member(post.comunidad_id, dto.autor_id)
 
         if self.usuarios.find_by_id(dto.autor_id) is None:
             raise HTTPException(
@@ -35,6 +38,7 @@ class ComentarioService:
             )
 
         if dto.comentario_padre_id is not None:
+            forum.require_visible_comments(dto.post_id, dto.autor_id)
             self._validar_padre(
                 dto.comentario_padre_id,
                 dto.post_id,
@@ -61,16 +65,20 @@ class ComentarioService:
     def get_by_id(
         self,
         comentario_id: int,
+        usuario_id: int | None = None,
     ) -> ComentarioResponseDTO:
         comentario = self._buscar_comentario(comentario_id)
         self._buscar_post_visible(comentario.post_id)
+        ForumService(self.db).require_visible_comments(comentario.post_id, usuario_id)
         return to_comentario_response(comentario)
 
     def list_by_post(
         self,
         post_id: int,
+        usuario_id: int | None = None,
     ) -> list[ComentarioResponseDTO]:
         self._buscar_post_visible(post_id)
+        ForumService(self.db).require_visible_comments(post_id, usuario_id)
         comentarios = self.repo.list_by_post(post_id)
 
         return [

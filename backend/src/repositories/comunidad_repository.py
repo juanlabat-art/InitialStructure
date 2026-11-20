@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from src.db.models.comunidad_model import Comunidad
+from src.db.models.foro_model import memberships
 from src.dtos.comunidad_dto import CreateComunidadDTO, UpdateComunidadDTO
 
 
@@ -16,12 +17,19 @@ class ComunidadRepository:
             es_nsfw=dto.es_nsfw,
         )
         self.db.add(comunidad)
+        self.db.flush()
+        self.db.execute(memberships.insert().values(
+            usuario_id=dto.creador_id, comunidad_id=comunidad.id, rol="moderador",
+        ))
         self.db.commit()
         self.db.refresh(comunidad)
         return comunidad
 
     def find_by_id(self, comunidad_id: int) -> Comunidad | None:
         return self.db.get(Comunidad, comunidad_id)
+
+    def has_communities(self) -> bool:
+        return self.db.query(Comunidad.id).first() is not None
 
     def list_all(self) -> list[Comunidad]:
         return self.db.query(Comunidad).order_by(Comunidad.id).all()
@@ -35,5 +43,6 @@ class ComunidadRepository:
         return comunidad
 
     def delete(self, comunidad: Comunidad) -> None:
+        self.db.execute(memberships.delete().where(memberships.c.comunidad_id == comunidad.id))
         self.db.delete(comunidad)
         self.db.commit()

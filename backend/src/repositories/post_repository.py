@@ -14,6 +14,8 @@ class PostRepository:
             autor_id=dto.autor_id,
             titulo=dto.titulo,
             contenido=dto.contenido,
+            es_pregunta=dto.es_pregunta,
+            opinar_primero=dto.es_pregunta and dto.opinar_primero,
         )
         self.db.add(post)
         self.db.commit()

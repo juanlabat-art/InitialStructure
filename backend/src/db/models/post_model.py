@@ -1,18 +1,18 @@
-from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, false
+from sqlalchemy.sql import func
+
+from src.db.connection import Base
 
 
-class UpdatePostSchema(BaseModel):
-    titulo: str = Field(min_length=1, max_length=300)
-    contenido: str | None = None
+class Post(Base):
+    __tablename__ = "post"
 
-    @field_validator("titulo", mode="before")
-    @classmethod
-    def limpiar_titulo(cls, titulo):
-        if isinstance(titulo, str):
-            return titulo.strip()
-        return titulo
-
-
-class CreatePostSchema(UpdatePostSchema):
-    comunidad_id: int = Field(gt=0)
-    autor_id: int = Field(gt=0)
+    id = Column(Integer, primary_key=True)
+    comunidad_id = Column(Integer, ForeignKey("comunidad.id"), nullable=False)
+    autor_id = Column(Integer, ForeignKey("usuario.id"), nullable=False)
+    titulo = Column(String(300), nullable=False)
+    contenido = Column(Text)
+    fecha = Column(DateTime, nullable=False, server_default=func.now())
+    oculto = Column(Boolean, nullable=False, server_default=false())
+    es_pregunta = Column(Boolean, nullable=False, server_default=false())
+    opinar_primero = Column(Boolean, nullable=False, server_default=false())

@@ -8,6 +8,7 @@ from src.mappers.post_mapper import to_post_response
 from src.repositories.comunidad_repository import ComunidadRepository
 from src.repositories.post_repository import PostRepository
 from src.repositories.usuario_repository import UsuarioRepository
+from src.services.foro_service import ForumService
 
 
 class PostService:
@@ -24,6 +25,7 @@ class PostService:
         if self.comunidades.find_by_id(dto.comunidad_id) is None:
             raise HTTPException(status_code=404, detail="La comunidad no existe")
 
+        ForumService(self.db).require_member(dto.comunidad_id, dto.autor_id)
         try:
             post = self.repo.create(dto)
         except IntegrityError as error:
