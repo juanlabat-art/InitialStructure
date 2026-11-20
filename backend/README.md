@@ -78,14 +78,6 @@ src/
 
 ---
 
-## Cómo está pensada la entrega
-
-El módulo de **users** tiene un endpoint completo (`POST /users`) con todas las capas implementadas como ejemplo de la sintaxis.
-
-El resto de los métodos (`GET`, `PUT`, `DELETE`) y los demás dominios (`products`, `auth`) están con `...` / `pass` / comentarios `TODO`. **Tu trabajo es completarlos** siguiendo el patrón del ejemplo.
-
----
-
 ## Reglas de la arquitectura
 
 1. `routers` no tocan la BD.

@@ -13,11 +13,6 @@ class NotFoundError(AppError):
     message = "Resource not found"
 
 
-class UnauthorizedError(AppError):
-    status_code = 401
-    message = "Unauthorized"
-
-
 class ForbiddenError(AppError):
     status_code = 403
     message = "Forbidden"
