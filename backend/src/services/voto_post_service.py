@@ -2,6 +2,9 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from src.db.models.usuario_model import Usuario
+from src.services.karma_service import actualizar_karma
+
 from src.dtos.voto_post_dto import (
     PuntajePostResponseDTO,
     VotarPostDTO,
@@ -18,7 +21,7 @@ class VotoPostService:
         self.repo = VotoPostRepository(db)
         self.usuarios = UsuarioRepository(db)
 
-    def votar(self, dto: VotarPostDTO) -> VotoPostResponseDTO:
+    def votar(self, dto: VotarPostDTO) -> VotoPostResponseDTO | None:
         try:
             post = self._buscar_post(dto.post_id, bloquear=True)
 
@@ -32,23 +35,17 @@ class VotoPostService:
                 dto.usuario_id,
                 dto.post_id,
             )
-            valor_anterior = voto.valor if voto is not None else 0
-            diferencia = dto.valor - valor_anterior
+            if post.autor_id == dto.usuario_id:
+                raise HTTPException(403, "No pod?s votar tu propia publicaci?n")
 
-            voto = self.repo.save(
-                usuario_id=dto.usuario_id,
-                post_id=dto.post_id,
-                valor=dto.valor,
-                voto=voto,
-            )
-
-            if diferencia != 0:
-                self.repo.actualizar_karma(
-                    post.autor_id,
-                    diferencia,
-                )
-
-            respuesta = to_voto_post_response(voto)
+            autor = self.db.get(Usuario, post.autor_id, with_for_update=True)
+            if voto is not None and voto.valor == dto.valor:
+                self.repo.delete(voto)
+                respuesta = None
+            else:
+                voto = self.repo.save(dto.usuario_id, dto.post_id, dto.valor, voto)
+                respuesta = to_voto_post_response(voto)
+            actualizar_karma(self.db, autor)
             self.db.commit()
             return respuesta
 
@@ -69,12 +66,9 @@ class VotoPostService:
             voto = self.repo.find_voto(usuario_id, post_id)
 
             if voto is not None:
-                valor_anterior = voto.valor
+                autor = self.db.get(Usuario, post.autor_id, with_for_update=True)
                 self.repo.delete(voto)
-                self.repo.actualizar_karma(
-                    post.autor_id,
-                    -valor_anterior,
-                )
+                actualizar_karma(self.db, autor)
 
             self.db.commit()
 

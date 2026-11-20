@@ -9,6 +9,7 @@ from src.db.models.comunidad_model import Comunidad
 from src.db.models.foro_model import answers, bans, comment_votes, memberships, questions, reports, saved, unlocks
 from src.db.models.post_model import Post
 from src.db.models.usuario_model import Usuario
+from src.services.karma_service import actualizar_karma
 
 
 def utc_now():
@@ -116,8 +117,13 @@ class ForumService:
             if role is None:
                 self._change_relation(memberships, keys, {"rol": "miembro"})
         elif payload.accion == "salir":
-            if community.creador_id == payload.usuario_id:
-                raise HTTPException(409, "La cuenta creadora conserva su rol de moderación")
+            if role == "moderador":
+                otros_roles = db.scalars(select(memberships.c.rol).where(
+                    memberships.c.comunidad_id == community_id,
+                    memberships.c.usuario_id != payload.usuario_id,
+                ).distinct()).all()
+                if otros_roles and "moderador" not in otros_roles:
+                    raise HTTPException(409, "El ?ltimo moderador no puede salir si quedan miembros")
             self._change_relation(memberships, keys)
         else:
             if role != "moderador":
@@ -182,9 +188,11 @@ class ForumService:
         old = db.scalar(select(comment_votes.c.valor).where(
             comment_votes.c.usuario_id == payload.usuario_id, comment_votes.c.comentario_id == comment_id,
         )) or 0
+        autor = db.get(Usuario, comment.autor_id, with_for_update=True)
+        nuevo = 0 if old == payload.valor else payload.valor
         self._change_relation(comment_votes, {"usuario_id": payload.usuario_id, "comentario_id": comment_id},
-                              {"valor": payload.valor} if payload.valor else None)
-        db.execute(update(Usuario).where(Usuario.id == comment.autor_id).values(karma=Usuario.karma + payload.valor - old))
+                              {"valor": nuevo} if nuevo else None)
+        actualizar_karma(db, autor)
         db.commit()
 
     def create_question(self, payload):

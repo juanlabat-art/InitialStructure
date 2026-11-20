@@ -16,8 +16,8 @@ def setup_local_database() -> None:
         if db.scalar(select(Usuario.id).limit(1)) is not None:
             return
 
-        lucia = Usuario(username="lucia.m", email="lucia@example.com", karma=32)
-        tomi = Usuario(username="tomirios", email="tomi@example.com", karma=18)
+        lucia = Usuario(username="lucia.m", email="lucia@example.com")
+        tomi = Usuario(username="tomirios", email="tomi@example.com")
         db.add_all([lucia, tomi])
         db.flush()
 

@@ -24,7 +24,7 @@ class ComunidadService:
         if creator is None:
             raise HTTPException(status_code=404, detail="El usuario creador no existe")
 
-        if creator.karma < 10 and self.repo.has_communities():
+        if creator.karma < 10:
             raise HTTPException(status_code=403, detail="Necesitás 10 de karma para crear una comunidad")
 
         try:

@@ -17,7 +17,7 @@ router = APIRouter(
 )
 
 
-@router.put("/", response_model=VotoPostResponseDTO)
+@router.put("/", response_model=VotoPostResponseDTO | None)
 def votar_post(
     payload: VotarPostSchema,
     db: Session = Depends(get_db),
