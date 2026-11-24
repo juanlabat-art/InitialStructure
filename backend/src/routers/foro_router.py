@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
-from src.services.sesion_service import sesion_actual, usuario_actual, verificar_actor
+from src.services.sesion_service import exigir_servidor_web, sesion_actual, usuario_actual, verificar_actor
 from src.db.models.comentario_model import Comentario
 from src.db.models.post_model import Post
 from src.db.models.usuario_model import Usuario
@@ -67,14 +67,20 @@ def update_post(post_id: int, payload: PostAction, db: Session = Depends(get_db)
     ForumService(db).post_action(post_id, payload)
 
 
-@router.put("/comentarios/{comment_id}/voto", status_code=204)
+@router.put(
+    "/comentarios/{comment_id}/voto", status_code=204,
+    dependencies=[Depends(exigir_servidor_web)], include_in_schema=False,
+)
 def comment_vote(comment_id: int, payload: CommentVote, db: Session = Depends(get_db),
                       actor=Depends(usuario_actual)):
     verificar_actor(actor, payload.usuario_id)
     ForumService(db).vote_comment(comment_id, actor, payload.valor)
 
 
-@router.delete("/comentarios/{comment_id}/voto", status_code=204)
+@router.delete(
+    "/comentarios/{comment_id}/voto", status_code=204,
+    dependencies=[Depends(exigir_servidor_web)], include_in_schema=False,
+)
 def remove_comment_vote(comment_id: int, db: Session = Depends(get_db), actor=Depends(usuario_actual)):
     ForumService(db).vote_comment(comment_id, actor, 0)
 

@@ -56,6 +56,7 @@ function postDetail(context: ScreenContext) {
     own = p.authorId === me().id;
   const num = numberOfReplies(p.id);
   return `<button class="back" data-action="open-community" data-id="${c.id}">${ico("back", 15)} Volver a ${esc(c.name)}</button>
+  ${me().id && own ? `<div class="page-head"><button type="button" class="btn btn-sm btn-danger" data-action="delete-post" data-id="${p.id}">Eliminar publicación</button></div>` : ""}
   ${
     p.hidden && !isMod(c.id)
       ? noContent(

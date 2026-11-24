@@ -1,6 +1,8 @@
+from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
 from src.db.models.comentario_model import Comentario
+from src.db.models.foro_model import comment_votes
 from src.dtos.comentario_dto import (
     CreateComentarioDTO,
     UpdateComentarioDTO,
@@ -45,6 +47,12 @@ class ComentarioRepository:
         return comentario
 
     def delete(self, comentario: Comentario) -> None:
-        comentario.eliminado = True
-        comentario.texto = "[eliminado]"
-        self.db.commit()
+        self.db.execute(
+            update(Comentario)
+            .where(Comentario.comentario_padre_id == comentario.id)
+            .values(comentario_padre_id=comentario.comentario_padre_id)
+        )
+        self.db.execute(delete(comment_votes).where(
+            comment_votes.c.comentario_id == comentario.id,
+        ))
+        self.db.execute(delete(Comentario).where(Comentario.id == comentario.id))

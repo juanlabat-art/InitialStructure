@@ -38,9 +38,9 @@ En una base PostgreSQL vacía, podés cargar los datos de ejemplo con `src/db/ta
 
 ## Karma del foro
 
-Cada voto ajeno suma (+1) o resta (-1) al saldo de votos netos del autor. El karma es el nivel alcanzado con ese saldo, con un piso de cero. Del nivel 1 al 15, el costo adicional es el número del nivel. Desde el 16, se multiplica el costo anterior por 1,25, se redondea hacia arriba y se limita a 1.000 votos adicionales por nivel. Llegar a 10 requiere 55 votos netos. La API recalcula el karma guardado al arrancar y lo sincroniza con cada cambio de voto.
+El karma parte de cero y se calcula con los votos positivos de otras cuentas. Del nivel 1 al 15, el costo adicional es el número del nivel. Desde el 16, se multiplica el costo anterior por 1,25, se redondea hacia arriba y se limita a 1.000 votos adicionales por nivel. Llegar a 10 requiere 55 votos positivos. La API recalcula el karma guardado al arrancar y lo sincroniza con cada cambio de voto.
 
-`GET /api/usuarios/{id}/karma` devuelve el desglose de votos y karma por tipo de contenido. El total aplica la escala al saldo combinado. Los niveles calculados por separado no son aditivos.
+`GET /api/usuarios/{id}/karma` devuelve el desglose de votos positivos y karma por tipo de contenido. El total aplica la escala a la suma de votos positivos en publicaciones y comentarios.
 
 Con PostgreSQL, configurá `backend/.env` con tu `DATABASE_URL` y creá primero la base vacía en pgAdmin. FastAPI crea las tablas que falten y añade las columnas nuevas de publicaciones a las bases existentes. Aplicá `src/db/tables.sql` solo si querés crear las tablas manualmente en una base nueva.
 

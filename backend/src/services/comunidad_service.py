@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.db.models.comunidad_model import Comunidad
+from src.db.models.post_model import Post
 from src.dtos.comunidad_dto import (
     ComunidadResponseDTO,
     CreateComunidadDTO,
@@ -10,6 +11,7 @@ from src.dtos.comunidad_dto import (
 )
 from src.mappers.comunidad_mapper import to_comunidad_response
 from src.repositories.comunidad_repository import ComunidadRepository
+from src.repositories.post_repository import PostRepository
 from src.repositories.usuario_repository import UsuarioRepository
 from src.services.foro_service import ForumService
 
@@ -63,12 +65,16 @@ class ComunidadService:
         return to_comunidad_response(comunidad)
 
     def delete(self, comunidad_id: int, actor: int) -> None:
-        comunidad = self._buscar_comunidad(comunidad_id)
+        comunidad = self.db.get(Comunidad, comunidad_id, with_for_update=True)
+        if comunidad is None:
+            raise HTTPException(404, "La comunidad no existe")
         if comunidad.creador_id != actor:
             raise HTTPException(403, "Solo la cuenta creadora puede eliminar esta comunidad")
 
         try:
+            PostRepository(self.db).delete_owned(Post.comunidad_id == comunidad_id, actor)
             self.repo.delete(comunidad)
+            self.db.commit()
         except IntegrityError as error:
             self.db.rollback()
             if self._codigo_integridad(error) in {"23503", "SQLITE_CONSTRAINT_FOREIGNKEY"}:

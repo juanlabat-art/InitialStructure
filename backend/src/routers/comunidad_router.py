@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
-from src.services.sesion_service import usuario_actual, verificar_actor
+from src.services.sesion_service import exigir_servidor_web, usuario_actual, verificar_actor
 from src.dtos.comunidad_dto import (
     ComunidadResponseDTO,
     CreateComunidadDTO,
     UpdateComunidadDTO,
 )
 from src.schemas.comunidad_schema import CreateComunidadSchema, UpdateComunidadSchema
+from src.schemas.eliminacion_schema import ConfirmarEliminacionSchema
 from src.services.comunidad_service import ComunidadService
 
 
@@ -43,7 +44,15 @@ def update_comunidad(
     return ComunidadService(db).update(comunidad_id, dto, actor)
 
 
-@router.delete("/{comunidad_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_comunidad(comunidad_id: int, db: Session = Depends(get_db), actor=Depends(usuario_actual)):
+@router.delete(
+    "/{comunidad_id}", status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(exigir_servidor_web)], include_in_schema=False,
+)
+def delete_comunidad(
+    comunidad_id: int,
+    confirmaciones: ConfirmarEliminacionSchema,
+    db: Session = Depends(get_db),
+    actor=Depends(usuario_actual),
+):
     ComunidadService(db).delete(comunidad_id, actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

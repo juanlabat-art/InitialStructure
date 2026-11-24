@@ -4,8 +4,21 @@ from sqlalchemy.orm import Session
 from src.db.connection import get_db
 from src.dtos.foro_dto import UsuarioForoDTO
 from src.dtos.usuario_dto import UsuarioResponseDTO
-from src.schemas.usuario_schema import CreateUsuarioSchema, CredencialesUsuarioSchema
-from src.services.sesion_service import cerrar_sesion, iniciar_sesion, sesion_actual, token_sesion
+from src.schemas.usuario_schema import (
+    CreateUsuarioSchema,
+    CredencialesUsuarioSchema,
+    EliminarCuentaSchema,
+)
+from src.services.sesion_service import (
+    COOKIE,
+    cerrar_sesion,
+    exigir_servidor_web,
+    iniciar_sesion,
+    sesion_actual,
+    token_sesion,
+    usuario_actual,
+    verificar_actor,
+)
 from src.services.usuario_service import UsuarioService
 
 
@@ -36,6 +49,21 @@ def sesion(actor=Depends(sesion_actual)):
 @router.delete("/sesion", status_code=204)
 def logout(response: Response, token=Depends(token_sesion), db: Session = Depends(get_db)):
     cerrar_sesion(db, token, response)
+
+
+@router.delete(
+    "/cuenta", status_code=204,
+    dependencies=[Depends(exigir_servidor_web)], include_in_schema=False,
+)
+def eliminar_cuenta(
+    payload: EliminarCuentaSchema,
+    response: Response,
+    actor: int = Depends(usuario_actual),
+    db: Session = Depends(get_db),
+):
+    verificar_actor(actor, payload.usuario_id)
+    UsuarioService(db).eliminar_cuenta(actor)
+    response.delete_cookie(COOKIE, httponly=True, samesite="lax")
 
 
 @router.get("/", response_model=list[UsuarioForoDTO])

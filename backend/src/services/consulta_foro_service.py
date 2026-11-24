@@ -15,7 +15,7 @@ from src.mappers.comentario_mapper import to_comentario_response
 from src.mappers.comunidad_mapper import to_comunidad_response
 from src.mappers.post_mapper import to_post_response
 from src.services.foro_service import ForumService, utc_now
-from src.services.karma_service import desglose_votos, karma_por_votos, votos_por_autor
+from src.services.karma_service import desglose_votos, karma_por_votos, votos_positivos_por_autor
 
 
 class ConsultaForoService:
@@ -51,8 +51,8 @@ class ConsultaForoService:
             "karma": karma_por_votos(posts + comentarios),
             "karma_posts": karma_por_votos(posts),
             "karma_comentarios": karma_por_votos(comentarios),
-            "votos_netos_posts": posts,
-            "votos_netos_comentarios": comentarios,
+            "votos_positivos_posts": posts,
+            "votos_positivos_comentarios": comentarios,
         }
 
     def comentarios(self, post_id, usuario_id):
@@ -127,8 +127,8 @@ class ConsultaForoService:
 
     def ranking(self, comunidad_id):
         self.entidad(Comunidad, comunidad_id)
-        posts = votos_por_autor(Post, VotoPost.__table__, VotoPost.post_id).where(Post.comunidad_id == comunidad_id)
-        comentarios = votos_por_autor(Comentario, comment_votes, comment_votes.c.comentario_id).join(
+        posts = votos_positivos_por_autor(Post, VotoPost.__table__, VotoPost.post_id).where(Post.comunidad_id == comunidad_id)
+        comentarios = votos_positivos_por_autor(Comentario, comment_votes, comment_votes.c.comentario_id).join(
             Post, Post.id == Comentario.post_id,
         ).where(Post.comunidad_id == comunidad_id)
         aportes = defaultdict(int)
@@ -142,4 +142,4 @@ class ConsultaForoService:
         ids = sorted(aportes, key=lambda id: (-aportes[id], id))[:10]
         usuarios = {u.id: u for u in self.db.scalars(select(Usuario).where(Usuario.id.in_(ids)))}
         return [{"id": id, "username": usuarios[id].username,
-                 "karma": karma_por_votos(aportes[id]), "votos_netos": aportes[id]} for id in ids]
+                 "karma": karma_por_votos(aportes[id]), "votos_positivos": aportes[id]} for id in ids]

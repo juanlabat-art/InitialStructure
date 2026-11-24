@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from src.db.models.comunidad_model import Comunidad
-from src.db.models.foro_model import memberships
+from src.db.models.foro_model import bans, memberships
 from src.dtos.comunidad_dto import CreateComunidadDTO, UpdateComunidadDTO
 
 
@@ -40,6 +40,7 @@ class ComunidadRepository:
         return comunidad
 
     def delete(self, comunidad: Comunidad) -> None:
+        self.db.execute(bans.delete().where(bans.c.comunidad_id == comunidad.id))
         self.db.execute(memberships.delete().where(memberships.c.comunidad_id == comunidad.id))
         self.db.delete(comunidad)
-        self.db.commit()
+        self.db.flush()

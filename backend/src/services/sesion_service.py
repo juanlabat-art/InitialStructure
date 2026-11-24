@@ -103,10 +103,11 @@ def sesion_actual(token: str | None = Depends(token_sesion), db: Session = Depen
     except (jwt.InvalidTokenError, ValueError):
         return None
 
-    return db.scalar(select(sesiones.c.usuario_id).where(
+    return db.scalar(select(sesiones.c.usuario_id).join(Usuario, Usuario.id == sesiones.c.usuario_id).where(
         sesiones.c.token_hash == _hash_token(token),
         sesiones.c.usuario_id == usuario_id,
         sesiones.c.vence > utc_now(),
+        Usuario.clave_hash.is_not(None),
     ))
 
 
@@ -114,6 +115,15 @@ def usuario_actual(usuario_id: int | None = Depends(sesion_actual)) -> int:
     if usuario_id is None:
         raise HTTPException(401, "Iniciá sesión para realizar esta acción")
     return usuario_id
+
+
+def exigir_servidor_web(request: Request) -> None:
+    secret = settings.VOZERO_WEB_DELETE_SECRET
+    supplied = request.headers.get("x-vozero-web-delete", "")
+    if secret is None or not compare_digest(
+        supplied.encode(), secret.get_secret_value().encode(),
+    ):
+        raise HTTPException(403, "La eliminación debe realizarse desde VoZero")
 
 
 def verificar_actor(autenticado, solicitado):

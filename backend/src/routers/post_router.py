@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
-from src.services.sesion_service import usuario_actual, verificar_actor
+from src.services.sesion_service import exigir_servidor_web, usuario_actual, verificar_actor
 from src.dtos.post_dto import CreatePostDTO, PostResponseDTO, UpdatePostDTO
 from src.schemas.post_schema import CreatePostSchema, UpdatePostSchema
+from src.schemas.eliminacion_schema import ConfirmarEliminacionSchema
 from src.services.post_service import PostService
 
 
@@ -42,7 +43,15 @@ def update_post(
     return PostService(db).update(post_id, dto, actor)
 
 
-@router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(post_id: int, db: Session = Depends(get_db), actor=Depends(usuario_actual)):
+@router.delete(
+    "/{post_id}", status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(exigir_servidor_web)], include_in_schema=False,
+)
+def delete_post(
+    post_id: int,
+    confirmaciones: ConfirmarEliminacionSchema,
+    db: Session = Depends(get_db),
+    actor=Depends(usuario_actual),
+):
     PostService(db).delete(post_id, actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

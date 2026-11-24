@@ -10,6 +10,8 @@ Sin `backend/.env`, FastAPI crea `backend/punto-local.db` con SQLite y carga cue
 
 Para iniciar los servicios por separado, seguí los comandos del README del backend y ejecutá `npm ci` y `npm run dev -- --hostname 127.0.0.1` en `frontend/`.
 
+Para habilitar los borrados al iniciar los servicios por separado, configurá el mismo valor aleatorio de al menos 32 caracteres en `VOZERO_WEB_DELETE_SECRET` en `backend/.env` y `frontend/.env.local`. `INICIAR.bat` genera y comparte ese valor automáticamente.
+
 ## Pantallas y rutas
 
 | Pantalla | URL |

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
-from src.services.sesion_service import sesion_actual, usuario_actual, verificar_actor
+from src.services.sesion_service import exigir_servidor_web, sesion_actual, usuario_actual, verificar_actor
 from src.dtos.comentario_dto import (
     ComentarioResponseDTO,
     CreateComentarioDTO,
@@ -13,6 +13,7 @@ from src.schemas.comentario_schema import (
     UpdateComentarioSchema,
 )
 from src.services.comentario_service import ComentarioService
+from src.schemas.eliminacion_schema import ConfirmarEliminacionSchema
 
 
 router = APIRouter(
@@ -74,9 +75,12 @@ def update_comentario(
 @router.delete(
     "/{comentario_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(exigir_servidor_web)],
+    include_in_schema=False,
 )
 def delete_comentario(
     comentario_id: int,
+    confirmaciones: ConfirmarEliminacionSchema,
     actor=Depends(usuario_actual),
     db: Session = Depends(get_db),
 ):

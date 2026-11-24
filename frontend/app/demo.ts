@@ -4,6 +4,11 @@ import { esc } from "./shared/presentation";
 import { forumApi } from "./shared/api";
 import { createScreenContext, type ScreenRenderer } from "./shared/state";
 
+function confirmDeletion(message: string) {
+  return window.confirm(message) &&
+    window.confirm("¿Confirmás la eliminación definitiva? Esta acción es irreversible.");
+}
+
 function viewHref(view: ViewState["view"], state: ViewState): string {
   switch (view) {
     case "home":
@@ -217,6 +222,18 @@ export function mountPunto(
         setView("home");
         toast("Cerraste sesión.");
         break;
+      case "delete-account": {
+        const { id, username } = me();
+        if (!id) break;
+        if (!confirmDeletion(
+          `¿Querés eliminar la cuenta @${username}? También se borrarán tus comunidades, publicaciones y comentarios.`,
+        )) break;
+        await forumApi.deleteAccount(id);
+        await connect(listeners.signal);
+        setView("home");
+        toast("Eliminaste tu cuenta.");
+        break;
+      }
       case "notifications":
         toast("¡Estás al día! No tenés notificaciones nuevas.");
         break;
@@ -351,11 +368,30 @@ export function mountPunto(
         break;
       case "delete-comment": {
         const c = context.db.comments.find((c) => c.id === itemId);
-        if (!c || c.authorId !== me().id) return;
+        if (!me().id || !c || c.deleted || c.authorId !== me().id) return;
+        if (!confirmDeletion("¿Querés eliminar tu comentario? Las respuestas se conservan.")) return;
         await forumApi.deleteComment(c.id);
         await connect(listeners.signal);
         render();
         toast("Comentario eliminado; las respuestas se conservan.");
+        break;
+      }
+      case "delete-post": {
+        const p = post(itemId);
+        if (!me().id || !p || p.authorId !== me().id) return;
+        if (!confirmDeletion("¿Querés eliminar tu publicación? También se eliminarán tus comentarios en ella.")) return;
+        await forumApi.deletePost(p.id);
+        setView("community", { communityId: p.communityId });
+        toast("Publicación eliminada.");
+        break;
+      }
+      case "delete-community": {
+        const c = comm(itemId);
+        if (!me().id || !c || c.creatorId !== me().id) return;
+        if (!confirmDeletion(`¿Querés eliminar la comunidad ${c.name}? También se eliminarán tus publicaciones y comentarios dentro de ella.`)) return;
+        await forumApi.deleteCommunity(c.id);
+        setView("communities");
+        toast("Comunidad eliminada.");
         break;
       }
       case "promote": {

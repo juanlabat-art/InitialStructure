@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.db.models.comentario_model import Comentario
 from src.db.models.post_model import Post
+from src.db.models.usuario_model import Usuario
 from src.dtos.comentario_dto import (
     ComentarioResponseDTO,
     CreateComentarioDTO,
@@ -14,6 +15,7 @@ from src.repositories.comentario_repository import ComentarioRepository
 from src.repositories.post_repository import PostRepository
 from src.repositories.usuario_repository import UsuarioRepository
 from src.services.foro_service import ForumService
+from src.services.karma_service import actualizar_karma
 
 
 class ComentarioService:
@@ -107,11 +109,15 @@ class ComentarioService:
         return to_comentario_response(actualizado)
 
     def delete(self, comentario_id: int, actor: int) -> None:
-        comentario = self._buscar_comentario(comentario_id)
+        comentario = self.db.get(Comentario, comentario_id, with_for_update=True)
+        if comentario is None:
+            raise HTTPException(404, "El comentario no existe")
         if comentario.autor_id != actor:
             raise HTTPException(403, "No tenés permiso para realizar esta acción")
-        self._buscar_post_visible(comentario.post_id)
+        autor = self.db.get(Usuario, actor, with_for_update=True)
         self.repo.delete(comentario)
+        actualizar_karma(self.db, autor)
+        self.db.commit()
 
     def _buscar_comentario(
         self,

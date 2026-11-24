@@ -119,6 +119,15 @@ function mutation<T>(path: string, method: string, body?: object) {
   });
 }
 
+function deleteConfirmed(path: string, fields?: object) {
+  return mutation<void>("/eliminar", "DELETE", {
+    path,
+    ...fields,
+    confirmacion_inicial: true,
+    confirmacion_final: true,
+  });
+}
+
 function apiId(id: string) {
   if (!/^[1-9]\d*$/.test(id))
     throw Error("Elegí una cuenta registrada para realizar esta acción.");
@@ -275,17 +284,20 @@ export const forumApi = {
   logout() {
     return mutation<void>("/usuario/sesion", "DELETE");
   },
+  deleteAccount(id: string) {
+    return deleteConfirmed("/usuario/cuenta", { usuario_id: apiId(id) });
+  },
   karma(userId: string, signal: AbortSignal) {
     return request<{
       karma: number;
       karma_posts: number;
       karma_comentarios: number;
-      votos_netos_posts: number;
-      votos_netos_comentarios: number;
+      votos_positivos_posts: number;
+      votos_positivos_comentarios: number;
     }>("/usuarios/" + apiId(userId) + "/karma", { signal });
   },
   ranking(communityId: string, signal: AbortSignal) {
-    return request<{ id: number; username: string; karma: number; votos_netos: number }[]>(
+    return request<{ id: number; username: string; karma: number; votos_positivos: number }[]>(
       "/comunidades/" + apiId(communityId) + "/top-usuarios", { signal },
     );
   },
@@ -339,7 +351,13 @@ export const forumApi = {
     );
   },
   deleteComment(id: string) {
-    return mutation<void>("/comentario/" + apiId(id), "DELETE");
+    return deleteConfirmed("/comentario/" + apiId(id));
+  },
+  deletePost(id: string) {
+    return deleteConfirmed("/post/" + apiId(id));
+  },
+  deleteCommunity(id: string) {
+    return deleteConfirmed("/comunidad/" + apiId(id));
   },
   changeMembership(
     actor: string,
@@ -374,10 +392,12 @@ export const forumApi = {
     });
   },
   voteComment(actor: string, comment: string, value: number) {
+    const path = "/foro/comentarios/" + apiId(comment) + "/voto";
+    if (value === 0) return mutation<void>("/eliminar", "DELETE", { path });
     return mutation<void>(
-      "/foro/comentarios/" + apiId(comment) + "/voto",
+      "/eliminar",
       "PUT",
-      { usuario_id: apiId(actor), valor: value },
+      { path, usuario_id: apiId(actor), valor: value },
     );
   },
   async createQuestion(title: string, content: string, blindMode: boolean) {
@@ -402,9 +422,10 @@ export const forumApi = {
     const post = apiId(postId);
     const user = apiId(actor);
     if (value === 0) {
-      await mutation<void>(`/votos-post/${post}/${user}`, "DELETE");
+      await mutation<void>("/eliminar", "DELETE", { path: `/votos-post/${post}/${user}` });
     } else {
-      await mutation("/votos-post", "PUT", {
+      await mutation("/eliminar", "PUT", {
+        path: "/votos-post/",
         usuario_id: user,
         post_id: post,
         valor: value,

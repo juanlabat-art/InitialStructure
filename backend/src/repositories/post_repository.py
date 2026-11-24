@@ -1,7 +1,14 @@
+from fastapi import HTTPException
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from src.db.models.comentario_model import Comentario
+from src.db.models.foro_model import comment_votes, reports, saved
 from src.db.models.post_model import Post
+from src.db.models.usuario_model import Usuario
+from src.db.models.voto_post_model import VotoPost
 from src.dtos.post_dto import CreatePostDTO, UpdatePostDTO
+from src.services.karma_service import actualizar_karma
 
 
 class PostRepository:
@@ -38,6 +45,28 @@ class PostRepository:
         self.db.refresh(post)
         return post
 
-    def delete(self, post: Post) -> None:
-        self.db.delete(post)
-        self.db.commit()
+    def delete_owned(self, scope, actor: int) -> None:
+        posts = self.db.scalars(select(Post).where(scope).order_by(Post.id).with_for_update()).all()
+        if any(post.autor_id != actor for post in posts):
+            raise HTTPException(409, "La comunidad contiene publicaciones de otras cuentas")
+
+        post_ids = [post.id for post in posts]
+        comments = self.db.scalars(select(Comentario).where(
+            Comentario.post_id.in_(post_ids),
+        ).order_by(Comentario.id).with_for_update()).all()
+        if any(comment.autor_id != actor and not comment.eliminado for comment in comments):
+            raise HTTPException(409, "Todavía hay comentarios de otras cuentas. Sus autores deben eliminarlos primero.")
+
+        author_ids = {post.autor_id for post in posts} | {comment.autor_id for comment in comments}
+        authors = self.db.scalars(select(Usuario).where(
+            Usuario.id.in_(author_ids),
+        ).order_by(Usuario.id).with_for_update()).all()
+        self.db.execute(delete(comment_votes).where(
+            comment_votes.c.comentario_id.in_([comment.id for comment in comments]),
+        ))
+        self.db.execute(delete(Comentario).where(Comentario.post_id.in_(post_ids)))
+        for table in (VotoPost.__table__, reports, saved):
+            self.db.execute(delete(table).where(table.c.post_id.in_(post_ids)))
+        self.db.execute(delete(Post).where(Post.id.in_(post_ids)))
+        for author in authors:
+            actualizar_karma(self.db, author)

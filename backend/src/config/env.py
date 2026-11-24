@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "sqlite:///./punto-local.db"
     PORT: int = 8000
+    VOZERO_WEB_DELETE_SECRET: SecretStr | None = Field(default=None, min_length=32)
     VOZERO_JWT_SECRET: SecretStr = Field(
         default_factory=lambda: SecretStr(token_urlsafe(48)), min_length=32,
     )

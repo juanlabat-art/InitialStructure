@@ -52,14 +52,20 @@ class PostService:
         return to_post_response(self.repo.update(post, dto))
 
     def delete(self, post_id: int, actor: int) -> None:
-        post = self._buscar_visible(post_id)
+        post = self.repo.find_by_id(post_id)
+        if post is None:
+            raise HTTPException(404, "El post no existe")
         if post.autor_id != actor:
             raise HTTPException(403, "No tenés permiso para realizar esta acción")
         try:
-            self.repo.delete(post)
+            self.repo.delete_owned(Post.id == post_id, actor)
+            self.db.commit()
         except IntegrityError as error:
             self.db.rollback()
-            if self._codigo_postgres(error) == "23503":
+            if (
+                self._codigo_postgres(error) == "23503"
+                or getattr(error.orig, "sqlite_errorname", None) == "SQLITE_CONSTRAINT_FOREIGNKEY"
+            ):
                 raise HTTPException(
                     status_code=409,
                     detail="El post tiene comentarios u otros registros asociados",

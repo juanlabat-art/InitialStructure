@@ -17,8 +17,8 @@ class KarmaDTO(BaseModel):
     karma: int
     karma_posts: int
     karma_comentarios: int
-    votos_netos_posts: int
-    votos_netos_comentarios: int
+    votos_positivos_posts: int
+    votos_positivos_comentarios: int
 
 
 class ComentarioArbolDTO(ComentarioResponseDTO):
@@ -43,4 +43,4 @@ class UsuarioRankingDTO(BaseModel):
     id: int
     username: str
     karma: int
-    votos_netos: int
+    votos_positivos: int
