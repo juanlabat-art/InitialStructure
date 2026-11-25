@@ -1,5 +1,6 @@
-from datetime import datetime
 from pydantic import BaseModel
+
+from src.utils.fechas import FechaUTC
 
 
 class CreateUsuarioDTO(BaseModel):
@@ -12,6 +13,6 @@ class UsuarioResponseDTO(BaseModel):
     username: str
     email: str
     karma: int
-    fecha_registro: datetime
+    fecha_registro: FechaUTC
 
     model_config = {"from_attributes": True}

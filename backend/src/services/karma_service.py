@@ -23,6 +23,13 @@ def karma_por_votos(votos: int) -> int:
     return bisect_right(_UMBRALES, votos)
 
 
+def votos_para_proximo_karma(votos: int) -> int:
+    karma = karma_por_votos(votos)
+    if karma < len(_UMBRALES):
+        return _UMBRALES[karma] - votos
+    return _COSTO_MAXIMO - (votos - _UMBRALES[-1]) % _COSTO_MAXIMO
+
+
 def votos_positivos_por_autor(modelo, votos, clave):
     return (
         select(modelo.autor_id.label("autor_id"), func.count().label("total"))
@@ -43,7 +50,7 @@ def desglose_votos(db, usuario_id):
 
 def actualizar_karma(db, autor):
     posts, comentarios = desglose_votos(db, autor.id)
-    autor.karma = karma_por_votos(posts + comentarios)
+    autor.karma = karma_por_votos(posts + comentarios) + Usuario.karma_por_nombramientos
 
 
 def reconciliar_karma(db):
@@ -51,4 +58,5 @@ def reconciliar_karma(db):
     posts = dict(db.execute(votos_positivos_por_autor(Post, VotoPost.__table__, VotoPost.post_id)).all())
     comentarios = dict(db.execute(votos_positivos_por_autor(Comentario, comment_votes, comment_votes.c.comentario_id)).all())
     for usuario in usuarios:
-        usuario.karma = karma_por_votos(posts.get(usuario.id, 0) + comentarios.get(usuario.id, 0))
+        votos = posts.get(usuario.id, 0) + comentarios.get(usuario.id, 0)
+        usuario.karma = karma_por_votos(votos) + Usuario.karma_por_nombramientos

@@ -7,6 +7,7 @@ from src.dtos.usuario_dto import UsuarioResponseDTO
 from src.schemas.usuario_schema import (
     CreateUsuarioSchema,
     CredencialesUsuarioSchema,
+    EditarPerfilSchema,
     EliminarCuentaSchema,
 )
 from src.services.sesion_service import (
@@ -51,6 +52,11 @@ def logout(response: Response, token=Depends(token_sesion), db: Session = Depend
     cerrar_sesion(db, token, response)
 
 
+@router.put("/perfil", response_model=UsuarioForoDTO)
+def editar_perfil(payload: EditarPerfilSchema, actor=Depends(usuario_actual), db: Session = Depends(get_db)):
+    return UsuarioService(db).editar_perfil(actor, payload.descripcion)
+
+
 @router.delete(
     "/cuenta", status_code=204,
     dependencies=[Depends(exigir_servidor_web)], include_in_schema=False,
@@ -66,11 +72,11 @@ def eliminar_cuenta(
     response.delete_cookie(COOKIE, httponly=True, samesite="lax")
 
 
-@router.get("/", response_model=list[UsuarioForoDTO])
+@router.get("/", response_model=list[UsuarioForoDTO], dependencies=[Depends(usuario_actual)])
 def list_usuarios(db: Session = Depends(get_db)):
     return UsuarioService(db).list_all()
 
 
-@router.get("/{usuario_id}", response_model=UsuarioForoDTO)
+@router.get("/{usuario_id}", response_model=UsuarioForoDTO, dependencies=[Depends(usuario_actual)])
 def get_usuario(usuario_id: int, db: Session = Depends(get_db)):
     return UsuarioService(db).get_by_id(usuario_id)

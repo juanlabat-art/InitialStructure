@@ -59,7 +59,6 @@ export const makeSeed = (): DemoData => ({
       creatorId: "u3",
       nsfw: false,
       baseMembers: 12400,
-      emoji: "💻",
       bg: "#e6efff",
       createdAt: hoursAgo(24 * 89),
     },
@@ -71,7 +70,6 @@ export const makeSeed = (): DemoData => ({
       creatorId: "u1",
       nsfw: false,
       baseMembers: 8300,
-      emoji: "🎓",
       bg: "#fff0dd",
       createdAt: hoursAgo(24 * 72),
     },
@@ -82,7 +80,6 @@ export const makeSeed = (): DemoData => ({
       creatorId: "u2",
       nsfw: false,
       baseMembers: 6700,
-      emoji: "🎬",
       bg: "#ffe6ee",
       createdAt: hoursAgo(24 * 70),
     },
@@ -94,7 +91,6 @@ export const makeSeed = (): DemoData => ({
       creatorId: "u4",
       nsfw: false,
       baseMembers: 15400,
-      emoji: "💭",
       bg: "#ede7ff",
       createdAt: hoursAgo(24 * 70),
     },
@@ -105,7 +101,6 @@ export const makeSeed = (): DemoData => ({
       creatorId: "u2",
       nsfw: false,
       baseMembers: 9800,
-      emoji: "🎧",
       bg: "#e4f7ef",
       createdAt: hoursAgo(24 * 70),
     },
@@ -116,7 +111,6 @@ export const makeSeed = (): DemoData => ({
       creatorId: "u3",
       nsfw: false,
       baseMembers: 4900,
-      emoji: "⌨️",
       bg: "#e4eafa",
       createdAt: hoursAgo(24 * 70),
     },
@@ -225,7 +219,7 @@ export const makeSeed = (): DemoData => ({
       id: "p2",
       communityId: "c2",
       authorId: "u2",
-      title: "El truco que me salvó en época de parciales 📚",
+      title: "El truco que me salvó en época de parciales",
       content:
         "Empecé a estudiar en bloques de 40 minutos, con pausas reales sin celular. Pensé que era una pavada, pero por primera vez llegué a rendir sin sentir que me faltaba la mitad del programa.",
       createdAt: hoursAgo(4),
@@ -410,6 +404,7 @@ export const makeSeed = (): DemoData => ({
   anonymousQuestions: [
     {
       id: "a1",
+      category: "estudio",
       title:
         "¿Alguna vez sentiste que elegiste tu carrera por presión de otros?",
       content:
@@ -419,6 +414,7 @@ export const makeSeed = (): DemoData => ({
     },
     {
       id: "a2",
+      category: "convivencia",
       title: "¿Cómo le digo a una amiga que me está haciendo mal?",
       content:
         "La quiero mucho, pero últimamente cada vez que nos vemos termino sintiéndome peor. No quiero lastimarla.",
@@ -427,6 +423,7 @@ export const makeSeed = (): DemoData => ({
     },
     {
       id: "a3",
+      category: "general",
       title: "¿Soy la única persona que siente que todos avanzan más rápido?",
       content:
         "En redes parece que todos tienen su vida resuelta. Yo siento que estoy improvisando todos los días.",
@@ -435,6 +432,7 @@ export const makeSeed = (): DemoData => ({
     },
     {
       id: "a4",
+      category: "general",
       title: "¿Qué cosa nunca te animaste a preguntar en público?",
       content:
         "Este es un espacio donde podés contar eso que te da vergüenza preguntar sin revelar quién sos.",

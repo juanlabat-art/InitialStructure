@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field, field_validator
+from typing import Annotated
+
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 
 class UpdateComentarioSchema(BaseModel):
@@ -16,3 +18,7 @@ class CreateComentarioSchema(UpdateComentarioSchema):
     post_id: int = Field(gt=0)
     autor_id: int = Field(gt=0)
     comentario_padre_id: int | None = Field(default=None, gt=0)
+
+
+class ReportarComentarioSchema(BaseModel):
+    motivo: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]

@@ -21,8 +21,7 @@ class ComentarioRepository:
             texto=dto.texto,
         )
         self.db.add(comentario)
-        self.db.commit()
-        self.db.refresh(comentario)
+        self.db.flush()
         return comentario
 
     def find_by_id(self, comentario_id: int) -> Comentario | None:
@@ -56,3 +55,10 @@ class ComentarioRepository:
             comment_votes.c.comentario_id == comentario.id,
         ))
         self.db.execute(delete(Comentario).where(Comentario.id == comentario.id))
+
+    def mark_deleted(self, comentario: Comentario) -> None:
+        comentario.eliminado = True
+        comentario.texto = ""
+        self.db.execute(delete(comment_votes).where(
+            comment_votes.c.comentario_id == comentario.id,
+        ))

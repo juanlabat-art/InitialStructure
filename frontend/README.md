@@ -30,14 +30,15 @@ Para habilitar los borrados al iniciar los servicios por separado, configurá el
 | Crear publicación | `/post/new` |
 | Crear pregunta anónima | `/anonymous/new` |
 | Crear comunidad | `/communities/new` |
+| Iniciar sesión | `/login` |
 | Registro | `/register` |
 | Reportar publicación | `/post/4/report` |
 | Banear miembro | `/communities/c2/moderation/ban/u2` |
 
 Las comunidades incluyen publicaciones, ranking y moderación para las cuentas con ese rol.
 
-Desde el avatar podés elegir una cuenta de demostración o registrar una nueva. La selección de cuenta es para pruebas locales.
+El foro requiere una cuenta con sesión iniciada. Desde la pantalla de inicio de sesión podés pasar al registro y, al cerrar sesión, VoZero vuelve a la pantalla de acceso.
 
 El frontend consulta FastAPI a través de `/api` en el mismo origen. Con `backend/.env` apuntando a PostgreSQL, VoZero guarda en esa base los usuarios, comunidades, publicaciones, comentarios, votos, membresías, guardados, reportes, acciones de moderación y preguntas y respuestas anónimas. El navegador solo conserva la cuenta seleccionada y la sesión del espacio anónimo.
 
-Si la base está vacía, registrá una cuenta y creá la primera comunidad. Las publicaciones tendrán los IDs que asigne la base.
+Registrá una cuenta para unirte a una comunidad inicial o crear una cuando tengas el karma necesario.

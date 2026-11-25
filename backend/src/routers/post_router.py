@@ -15,7 +15,7 @@ router = APIRouter(prefix="/post", tags=["posts"])
 @router.post("/", response_model=PostResponseDTO, status_code=status.HTTP_201_CREATED)
 def create_post(payload: CreatePostSchema, db: Session = Depends(get_db), actor=Depends(usuario_actual)):
     verificar_actor(actor, payload.autor_id)
-    dto = CreatePostDTO(**payload.model_dump())
+    dto = CreatePostDTO(**payload.model_dump(mode="json"))
     return PostService(db).create(dto)
 
 

@@ -1,7 +1,8 @@
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+from src.utils.fechas import FechaUTC
 
 
 class VotarPostDTO(BaseModel):
@@ -16,7 +17,7 @@ class VotoPostResponseDTO(BaseModel):
     usuario_id: int
     post_id: int
     valor: Literal[1, -1]
-    fecha: datetime
+    fecha: FechaUTC
 
 
 class PuntajePostResponseDTO(BaseModel):

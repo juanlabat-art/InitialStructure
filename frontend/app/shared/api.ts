@@ -1,4 +1,5 @@
-import type { Comment, Community, Post, User } from "../demo-types";
+import type { AdminContentSection, AdminSelection, Comment, Community, ForumNotification, PhotoTarget, Post, SiteRole, User } from "../demo-types";
+import { isAnonymousCategory, type AnonymousCategory } from "./anonymous-categories";
 
 interface ApiUser {
   id: number;
@@ -6,6 +7,10 @@ interface ApiUser {
   email?: string;
   karma: number;
   fecha_registro: string;
+  descripcion?: string | null;
+  rol_sitio?: SiteRole;
+  foto_version?: string | null;
+  perfil_visible?: boolean;
 }
 interface ApiCommunity {
   id: number;
@@ -14,6 +19,16 @@ interface ApiCommunity {
   creador_id: number;
   es_nsfw: boolean;
   fecha_creacion: string;
+  foto_version?: string | null;
+}
+interface ApiNotification {
+  comentario_id: number | null;
+  post_id: number;
+  autor: string | null;
+  titulo: string;
+  es_respuesta: boolean;
+  leida: boolean;
+  fecha: string;
 }
 interface ApiPost {
   id: number;
@@ -22,7 +37,9 @@ interface ApiPost {
   titulo: string;
   contenido: string | null;
   fecha: string;
+  fecha_edicion?: string | null;
   oculto: boolean;
+  eliminado?: boolean;
   es_pregunta: boolean;
   opinar_primero: boolean;
 }
@@ -37,6 +54,8 @@ interface ApiComment {
 }
 interface ApiForum {
   usuario_actual_id: number | null;
+  rol_sitio_actual?: SiteRole | null;
+  votos_para_proximo_karma: number | null;
   membresias: {
     usuario_id: number;
     comunidad_id: number;
@@ -51,6 +70,7 @@ interface ApiForum {
     motivo: string;
     fecha: string;
   }[];
+  comentarios_reportados?: number[];
   baneos: {
     id: number;
     comunidad_id: number;
@@ -72,12 +92,15 @@ interface ApiForum {
     contenido: string;
     opinar_primero: boolean;
     fecha: string;
+    categoria?: AnonymousCategory;
+    propia?: boolean;
   }[];
   respuestas: {
     id: number;
     pregunta_id: number;
     texto: string;
     fecha: string;
+    propia?: boolean;
   }[];
   preguntas_desbloqueadas: number[];
   usuarios: ApiUser[];
@@ -93,12 +116,29 @@ interface ApiForum {
   }[];
 }
 
+export interface AdminEntry {
+  id: number;
+  texto: string;
+  detalle: string | null;
+  resumen: string | null;
+  reportes: number | null;
+  oculto: boolean | null;
+  rol_sitio: SiteRole | null;
+}
+
+export class ApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch("/api" + path, { cache: "no-store", ...init });
   if (!response.ok) {
     const error = await response.json().catch(() => null);
     const detail = error?.detail;
-    throw Error(
+    throw new ApiError(
+      response.status,
       typeof detail === "string"
         ? detail
         : response.status === 422
@@ -109,9 +149,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.status === 204 ? (undefined as T) : response.json();
 }
 
-function mutation<T>(path: string, method: string, body?: object) {
+function mutation<T>(path: string, method: string, body?: object, signal?: AbortSignal) {
   return request<T>(path, {
     method,
+    signal,
     ...(body && {
       body: JSON.stringify(body),
       headers: { "Content-Type": "application/json" },
@@ -146,6 +187,10 @@ function user(row: ApiUser): User {
     karmaBase: row.karma,
     joinedAt: date(row.fecha_registro),
     color: "mint",
+    description: row.descripcion ?? "",
+    siteRole: row.rol_sitio ?? "usuario",
+    photoVersion: row.foto_version ?? undefined,
+    profileVisible: row.perfil_visible ?? false,
   };
 }
 
@@ -157,9 +202,9 @@ function community(row: ApiCommunity): Community {
     creatorId: String(row.creador_id),
     nsfw: row.es_nsfw,
     baseMembers: 0,
-    emoji: "💬",
     bg: "var(--selected)",
     createdAt: date(row.fecha_creacion),
+    photoVersion: row.foto_version ?? undefined,
   };
 }
 
@@ -171,7 +216,9 @@ function post(row: ApiPost): Post {
     title: row.titulo,
     content: row.contenido ?? "",
     createdAt: date(row.fecha),
+    editedAt: row.fecha_edicion ? date(row.fecha_edicion) : undefined,
     hidden: row.oculto,
+    deleted: row.eliminado ?? false,
     baseScore: 0,
     isQuestion: row.es_pregunta,
     blindMode: row.opinar_primero,
@@ -228,6 +275,7 @@ export const forumApi = {
         id: String(row.id),
         reason: row.motivo,
       })),
+      reportedComments: (data.comentarios_reportados ?? []).map(String),
       bans: data.baneos.map((row) => ({
         id: String(row.id),
         userId: String(row.usuario_id),
@@ -238,6 +286,8 @@ export const forumApi = {
       })),
       anonymousQuestions: data.preguntas.map((row) => ({
         id: String(row.id),
+        category: isAnonymousCategory(row.categoria) ? row.categoria : "general",
+        mine: row.propia ?? false,
         title: row.titulo,
         content: row.contenido,
         blindMode: row.opinar_primero,
@@ -247,6 +297,7 @@ export const forumApi = {
         id: String(row.id),
         questionId: String(row.pregunta_id),
         text: row.texto,
+        mine: row.propia ?? false,
         createdAt: date(row.fecha),
       })),
       anonymousUnlocks: data.preguntas_desbloqueadas.map((id) => ({
@@ -255,6 +306,8 @@ export const forumApi = {
       })),
       commentVotes,
       currentUserId: data.usuario_actual_id === null ? "" : String(data.usuario_actual_id),
+      siteRole: data.rol_sitio_actual ?? null,
+      votesToNextKarma: data.votos_para_proximo_karma ?? null,
       users: data.usuarios.map(user),
       communities: data.comunidades.map(community),
       posts: data.posts.map((row) => ({
@@ -278,18 +331,68 @@ export const forumApi = {
       await mutation<ApiUser>("/usuario", "POST", { username, email, clave }),
     );
   },
+  async notifications(signal: AbortSignal): Promise<ForumNotification[]> {
+    const rows = await request<ApiNotification[]>("/foro/notificaciones", { signal });
+    return rows.map((row) => ({
+      commentId: row.comentario_id,
+      postId: String(row.post_id),
+      author: row.autor ?? "",
+      title: row.titulo,
+      isReply: row.es_respuesta,
+      read: row.leida,
+      createdAt: date(row.fecha),
+    }));
+  },
+  readNotifications(entries: ForumNotification[], signal: AbortSignal) {
+    return mutation<void>("/foro/notificaciones", "PUT", {
+      comentario_ids: entries.flatMap((entry) => entry.commentId === null ? [] : [entry.commentId]),
+      post_ids: entries.flatMap((entry) => entry.commentId === null ? [apiId(entry.postId)] : []),
+    }, signal);
+  },
   login(username: string, clave: string) {
     return mutation<ApiUser>("/usuario/sesion", "POST", { username, clave });
   },
   logout() {
     return mutation<void>("/usuario/sesion", "DELETE");
   },
+  updateProfile(description: string) {
+    return mutation<ApiUser>("/usuario/perfil", "PUT", { descripcion: description });
+  },
+  savePhoto(target: PhotoTarget, id: string, photo: File) {
+    return request<void>(`/fotos/${target}/${apiId(id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: photo,
+    });
+  },
+  removePhoto(target: PhotoTarget, id: string) {
+    return mutation<void>(`/fotos/${target}/${apiId(id)}`, "DELETE");
+  },
   deleteAccount(id: string) {
     return deleteConfirmed("/usuario/cuenta", { usuario_id: apiId(id) });
+  },
+  adminEntries(selection: AdminSelection, signal: AbortSignal) {
+    const params = new URLSearchParams({
+      seccion: selection.section, pagina: String(selection.page), q: selection.query,
+    });
+    return request<{ entradas: AdminEntry[]; siguiente: boolean }>("/admin/entradas?" + params, { signal });
+  },
+  changeSiteRole(id: string, role: "usuario" | "subadmin") {
+    return mutation<void>(`/admin/usuarios/${apiId(id)}/rol`, "PUT", { rol: role });
+  },
+  setAdminPostVisibility(id: string, hidden: boolean) {
+    return mutation<void>(`/admin/posts/${apiId(id)}/visibilidad`, "PUT", { oculto: hidden });
+  },
+  deleteAdminEntry(section: AdminContentSection, id: string) {
+    return deleteConfirmed(`/admin/${section}/${apiId(id)}`);
+  },
+  deleteAdminUser(id: string) {
+    return deleteConfirmed(`/admin/usuarios/${apiId(id)}`);
   },
   karma(userId: string, signal: AbortSignal) {
     return request<{
       karma: number;
+      karma_por_nombramientos: number;
       karma_posts: number;
       karma_comentarios: number;
       votos_positivos_posts: number;
@@ -323,6 +426,7 @@ export const forumApi = {
     content: string,
     isQuestion: boolean,
     blindMode: boolean,
+    requestId: string,
   ) {
     return post(
       await mutation<ApiPost>("/post", "POST", {
@@ -332,8 +436,15 @@ export const forumApi = {
         contenido: content,
         es_pregunta: isQuestion,
         opinar_primero: blindMode,
+        solicitud_id: requestId,
       }),
     );
+  },
+  updatePost(postId: string, title: string, content: string) {
+    return mutation<ApiPost>("/post/" + apiId(postId), "PUT", {
+      titulo: title,
+      contenido: content,
+    });
   },
   async createComment(
     actor: string,
@@ -352,6 +463,12 @@ export const forumApi = {
   },
   deleteComment(id: string) {
     return deleteConfirmed("/comentario/" + apiId(id));
+  },
+  updateComment(id: string, text: string) {
+    return mutation<ApiComment>("/comentario/" + apiId(id), "PUT", { texto: text });
+  },
+  reportComment(id: string, reason: string) {
+    return mutation<void>(`/comentario/${apiId(id)}/reportes`, "POST", { motivo: reason });
   },
   deletePost(id: string) {
     return deleteConfirmed("/post/" + apiId(id));
@@ -400,23 +517,17 @@ export const forumApi = {
       { path, usuario_id: apiId(actor), valor: value },
     );
   },
-  async createQuestion(title: string, content: string, blindMode: boolean) {
+  async createQuestion(title: string, content: string, blindMode: boolean, category: AnonymousCategory) {
     const question = await mutation<{ id: number }>("/foro/anonimo", "POST", {
       titulo: title,
       contenido: content,
       opinar_primero: blindMode,
+      categoria: category,
     });
     return String(question.id);
   },
-  answerQuestion(id: string, session: string, text: string) {
-    return request<void>("/foro/anonimo/" + apiId(id) + "/respuestas", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Punto-Session": session,
-      },
-      body: JSON.stringify({ texto: text }),
-    });
+  answerQuestion(id: string, text: string) {
+    return mutation<void>("/foro/anonimo/" + apiId(id) + "/respuestas", "POST", { texto: text });
   },
   async votePost(actor: string, postId: string, value: number) {
     const post = apiId(postId);

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -19,6 +21,7 @@ class PostRepository:
         post = Post(
             comunidad_id=dto.comunidad_id,
             autor_id=dto.autor_id,
+            solicitud_id=dto.solicitud_id,
             titulo=dto.titulo,
             contenido=dto.contenido,
             es_pregunta=dto.es_pregunta,
@@ -32,6 +35,13 @@ class PostRepository:
     def find_by_id(self, post_id: int) -> Post | None:
         return self.db.get(Post, post_id)
 
+    def find_by_request(self, dto: CreatePostDTO) -> Post | None:
+        if dto.solicitud_id is None:
+            return None
+        return self.db.scalar(select(Post).where(
+            Post.autor_id == dto.autor_id, Post.solicitud_id == dto.solicitud_id,
+        ))
+
     def list_all(self, comunidad_id: int | None = None) -> list[Post]:
         consulta = self.db.query(Post).filter(Post.oculto.is_(False))
         if comunidad_id is not None:
@@ -39,14 +49,34 @@ class PostRepository:
         return consulta.order_by(Post.fecha.desc(), Post.id.desc()).all()
 
     def update(self, post: Post, dto: UpdatePostDTO) -> Post:
+        if post.titulo == dto.titulo and (post.contenido or "") == (dto.contenido or ""):
+            return post
         post.titulo = dto.titulo
         post.contenido = dto.contenido
+        post.fecha_edicion = datetime.now(timezone.utc)
         self.db.commit()
         self.db.refresh(post)
         return post
 
+    def mark_deleted(self, post: Post) -> None:
+        if post.eliminado:
+            return
+        post.eliminado = True
+        post.oculto = False
+        post.titulo = "Publicación eliminada"
+        post.contenido = None
+        post.es_pregunta = False
+        post.opinar_primero = False
+        post.fecha_edicion = None
+        for table in (VotoPost.__table__, saved):
+            self.db.execute(delete(table).where(table.c.post_id == post.id))
+        autor = self.db.get(Usuario, post.autor_id, with_for_update=True)
+        actualizar_karma(self.db, autor)
+
     def delete_owned(self, scope, actor: int) -> None:
         posts = self.db.scalars(select(Post).where(scope).order_by(Post.id).with_for_update()).all()
+        if not posts:
+            return
         if any(post.autor_id != actor for post in posts):
             raise HTTPException(409, "La comunidad contiene publicaciones de otras cuentas")
 

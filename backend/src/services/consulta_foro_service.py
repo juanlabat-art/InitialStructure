@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
@@ -14,8 +14,9 @@ from src.dtos.foro_dto import UsuarioForoDTO
 from src.mappers.comentario_mapper import to_comentario_response
 from src.mappers.comunidad_mapper import to_comunidad_response
 from src.mappers.post_mapper import to_post_response
-from src.services.foro_service import ForumService, utc_now
+from src.services.foro_service import ForumService
 from src.services.karma_service import desglose_votos, karma_por_votos, votos_positivos_por_autor
+from src.utils.fechas import fecha_utc
 
 
 class ConsultaForoService:
@@ -30,7 +31,9 @@ class ConsultaForoService:
 
     def perfil(self, username):
         db = self.db
-        usuario = db.scalar(select(Usuario).where(func.lower(Usuario.username) == username.lower()))
+        usuario = db.scalar(select(Usuario).where(
+            func.lower(Usuario.username) == username.lower(), Usuario.clave_hash.is_not(None),
+        ))
         if usuario is None:
             raise HTTPException(404, "El usuario no existe")
         comunidades = db.scalars(select(Comunidad).join(memberships).where(
@@ -39,16 +42,17 @@ class ConsultaForoService:
         return dict(
             UsuarioForoDTO.model_validate(usuario).model_dump(),
             cantidad_posts=db.scalar(select(func.count()).select_from(Post).where(
-                Post.autor_id == usuario.id,
+                Post.autor_id == usuario.id, Post.oculto.is_(False), Post.eliminado.is_(False),
             )),
             comunidades=[to_comunidad_response(c) for c in comunidades],
         )
 
     def karma(self, usuario_id):
-        self.entidad(Usuario, usuario_id)
+        usuario = self.entidad(Usuario, usuario_id)
         posts, comentarios = desglose_votos(self.db, usuario_id)
         return {
-            "karma": karma_por_votos(posts + comentarios),
+            "karma": karma_por_votos(posts + comentarios) + usuario.karma_por_nombramientos,
+            "karma_por_nombramientos": usuario.karma_por_nombramientos,
             "karma_posts": karma_por_votos(posts),
             "karma_comentarios": karma_por_votos(comentarios),
             "votos_positivos_posts": posts,
@@ -92,12 +96,14 @@ class ConsultaForoService:
         consulta = select(Post, func.coalesce(puntajes.c.puntaje, 0)).outerjoin(
             puntajes, Post.id == puntajes.c.post_id,
         ).where(Post.comunidad_id.in_(comunidades), Post.oculto.is_(False))
-        ahora = utc_now()
+        ahora = datetime.now(timezone.utc)
         if orden == "top" and periodo == "semana":
             consulta = consulta.where(Post.fecha >= ahora - timedelta(days=7))
         filas = self.db.execute(consulta.order_by(Post.fecha.desc(), Post.id.desc())).all()
         if orden == "hot":
-            filas.sort(key=lambda fila: fila[1] / (max(0, (ahora - fila[0].fecha).total_seconds()) / 3600 + 2),
+            filas.sort(key=lambda fila: fila[1] / (
+                max(0, (ahora - fecha_utc(fila[0].fecha)).total_seconds()) / 3600 + 2
+            ),
                        reverse=True)
         elif orden == "top":
             filas.sort(key=lambda fila: fila[1], reverse=True)
@@ -112,10 +118,14 @@ class ConsultaForoService:
         self.entidad(Comunidad, comunidad_id)
         if ForumService(self.db).role(comunidad_id, usuario_id) != "moderador":
             raise HTTPException(403, "Acción solo para moderadores")
-        conteos = select(reports.c.post_id, func.count().label("cantidad")).group_by(reports.c.post_id).subquery()
+        conteos = select(
+            reports.c.post_id, func.count(func.distinct(reports.c.usuario_id)).label("cantidad"),
+        ).join(Post, Post.id == reports.c.post_id).where(
+            reports.c.usuario_id != Post.autor_id,
+        ).group_by(reports.c.post_id).subquery()
         filas = self.db.execute(select(Post, conteos.c.cantidad).join(
             conteos, conteos.c.post_id == Post.id,
-        ).where(Post.comunidad_id == comunidad_id).order_by(conteos.c.cantidad.desc(), Post.id))
+        ).where(Post.comunidad_id == comunidad_id, Post.eliminado.is_(False)).order_by(conteos.c.cantidad.desc(), Post.id))
         return [dict(to_post_response(post).model_dump(), cantidad_reportes=cantidad) for post, cantidad in filas]
 
     def guardados(self, usuario_id):

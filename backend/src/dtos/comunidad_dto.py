@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
+
+from src.utils.fechas import FechaUTC
 
 
 class UpdateComunidadDTO(BaseModel):
@@ -21,4 +21,5 @@ class ComunidadResponseDTO(BaseModel):
     descripcion: str | None
     creador_id: int
     es_nsfw: bool
-    fecha_creacion: datetime
+    fecha_creacion: FechaUTC
+    foto_version: str | None = None

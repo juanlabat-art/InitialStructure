@@ -93,7 +93,7 @@ class VotoPostService:
     def _buscar_post(self, post_id: int, bloquear: bool = False):
         post = self.repo.find_post(post_id, bloquear)
 
-        if post is None or post.oculto:
+        if post is None or post.oculto or post.eliminado:
             raise HTTPException(
                 status_code=404,
                 detail="El post no existe o está oculto",

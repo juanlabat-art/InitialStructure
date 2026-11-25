@@ -1,4 +1,16 @@
-import type { Community, User } from "../demo-types";
+import type { Community, PhotoTarget, SiteRole, User } from "../demo-types";
+
+export const siteRoleLabels: Record<SiteRole, string> = {
+  usuario: "Usuario",
+  subadmin: "Subadministrador",
+  admin: "Administrador general",
+};
+
+export function karmaProgress(votes: number | null) {
+  if (votes === null) return "";
+  const remaining = votes === 1 ? "Te falta <strong>1 voto positivo</strong>" : `Te faltan <strong>${votes} votos positivos</strong>`;
+  return `<p class="karma-progress">${remaining} para el próximo punto de karma.</p>`;
+}
 
 export const esc = (value: unknown) =>
   String(value ?? "").replace(
@@ -24,18 +36,27 @@ const initials = (value: string) =>
     .toUpperCase();
 export const count = (num: number) =>
   num > 999 ? `${(num / 1000).toFixed(1)}k` : String(num);
-export const dateLabel = (iso: string) => {
-  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
-  if (h < 1) return "hace unos minutos";
+const dateWithTime = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short" });
+const dateOnly = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" });
+
+export const dateLabel = (iso: string, now = Date.now()) => {
+  const timestamp = Date.parse(iso);
+  if (!Number.isFinite(timestamp)) return "Fecha desconocida";
+  const minutes = Math.floor((now - timestamp) / 60_000);
+  if (minutes < -1) return dateWithTime.format(timestamp);
+  if (minutes < 1) return "ahora mismo";
+  if (minutes < 60) return `hace ${minutes} min`;
+  const h = Math.floor(minutes / 60);
   if (h < 24) return `hace ${h} h`;
   const d = Math.floor(h / 24);
-  return d < 30
-    ? `hace ${d} d`
-    : new Date(iso).toLocaleDateString("es-AR", {
-        day: "numeric",
-        month: "short",
-      });
+  return d < 30 ? `hace ${d} d` : dateOnly.format(timestamp);
 };
+
+export function relativeTime(iso: string, className = "") {
+  const timestamp = Date.parse(iso);
+  if (!Number.isFinite(timestamp)) return "Fecha desconocida";
+  return `<time class="${esc(className)}" datetime="${esc(iso)}" data-relative-time title="${esc(dateWithTime.format(timestamp))}">${dateLabel(iso)}</time>`;
+}
 const icons: Record<string, string> = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
   grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -50,6 +71,7 @@ const icons: Record<string, string> = {
     '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   chevron: '<path d="m6 9 6 6 6-6"/>',
   back: '<path d="m12 19-7-7 7-7M5 12h14"/>',
   arrowUp: '<path d="m5 13 7-7 7 7M12 6v13"/>',
@@ -75,8 +97,6 @@ const icons: Record<string, string> = {
     '<path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/><circle cx="12" cy="12" r="4"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 8-3 8-3 10h18c0-2-3-2-3-10M10 22h4"/>',
   trending: '<path d="m3 17 6-6 4 4 7-7M14 8h6v6"/>',
-  sparkles:
-    '<path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5ZM19 17l.7 2.3L22 20l-2.3.7L19 23l-.7-2.3L16 20l2.3-.7Z"/>',
   trash: '<path d="M4 7h16M10 3h4M6 7l1 14h10l1-14M10 11v6m4-6v6"/>',
   edit: '<path d="M4 17v3h3l12-12-3-3L4 17Z"/>',
   calendar:
@@ -88,7 +108,26 @@ const icons: Record<string, string> = {
 export const ico = (name: string, size = 18) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.info}</svg>`;
 
+export function photoUrl(target: PhotoTarget, entity?: User | Community) {
+  if (!entity?.photoVersion) return "";
+  return `/api/fotos/${target}/${encodeURIComponent(entity.id)}?v=${encodeURIComponent(entity.photoVersion)}`;
+}
+
+function photo(target: PhotoTarget, entity?: User | Community) {
+  const url = photoUrl(target, entity);
+  return url ? `<img class="entity-photo" src="${esc(url)}" alt="" decoding="async" />` : "";
+}
+
 export const av = (u: User | undefined, size = "") =>
-  `<span class="avatar ${esc(u?.color || "")} ${size}" title="${esc(u?.username || "usuario")}">${esc(initials(u?.username || "u"))}</span>`;
-export const cicon = (c: Community | undefined, size = 28) =>
-  `<span class="community-icon" style="background:${esc(c?.bg || "var(--selected)")};${size > 30 ? `width:${size}px;height:${size}px;font-size:${size * 0.43}px` : ""}">${c?.emoji || "💬"}</span>`;
+  `<span class="avatar photo-slot ${esc(u?.color || "")} ${size}" title="${esc(u?.username || "usuario")}">${photo("usuarios", u) || esc(initials(u?.username || "u"))}</span>`;
+
+export function userProfileLink(user: User | undefined, options: { avatar?: boolean; prefix?: string } = {}) {
+  const name = esc(user?.username ? `u/${user.username}` : "Usuario eliminado");
+  const label = `${options.avatar ? av(user, "small") : ""}<span>${esc(options.prefix)}${name}</span>`;
+  return user?.profileVisible
+    ? `<a class="user-profile-link" href="/users/${encodeURIComponent(user.username)}">${label}</a>`
+    : `<span class="user-profile-link">${label}</span>`;
+}
+
+export const cicon = (c: Community | undefined, size = 28, className = "") =>
+  `<span class="community-icon photo-slot ${esc(className)}" style="background:${esc(c?.bg || "var(--selected)")};width:${size}px;height:${size}px">${photo("comunidades", c) || ico("users", Math.round(size * 0.54))}</span>`;

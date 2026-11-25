@@ -19,6 +19,10 @@ class PostService:
         self.comunidades = ComunidadRepository(db)
 
     def create(self, dto: CreatePostDTO) -> PostResponseDTO:
+        existing = self.repo.find_by_request(dto)
+        if existing is not None:
+            return to_post_response(existing)
+
         if self.usuarios.find_by_id(dto.autor_id) is None:
             raise HTTPException(status_code=404, detail="El autor no existe")
 
@@ -30,6 +34,9 @@ class PostService:
             post = self.repo.create(dto)
         except IntegrityError as error:
             self.db.rollback()
+            existing = self.repo.find_by_request(dto)
+            if existing is not None:
+                return to_post_response(existing)
             if self._codigo_postgres(error) == "23503":
                 raise HTTPException(
                     status_code=409,
@@ -46,34 +53,24 @@ class PostService:
         return to_post_response(self._buscar_visible(post_id))
 
     def update(self, post_id: int, dto: UpdatePostDTO, actor: int) -> PostResponseDTO:
-        post = self._buscar_visible(post_id)
+        post = self._buscar_visible(post_id, bloquear=True)
         if post.autor_id != actor:
             raise HTTPException(403, "No tenés permiso para realizar esta acción")
+        if post.eliminado:
+            raise HTTPException(409, "La publicación está eliminada")
         return to_post_response(self.repo.update(post, dto))
 
     def delete(self, post_id: int, actor: int) -> None:
-        post = self.repo.find_by_id(post_id)
+        post = self.db.get(Post, post_id, with_for_update=True)
         if post is None:
             raise HTTPException(404, "El post no existe")
         if post.autor_id != actor:
             raise HTTPException(403, "No tenés permiso para realizar esta acción")
-        try:
-            self.repo.delete_owned(Post.id == post_id, actor)
-            self.db.commit()
-        except IntegrityError as error:
-            self.db.rollback()
-            if (
-                self._codigo_postgres(error) == "23503"
-                or getattr(error.orig, "sqlite_errorname", None) == "SQLITE_CONSTRAINT_FOREIGNKEY"
-            ):
-                raise HTTPException(
-                    status_code=409,
-                    detail="El post tiene comentarios u otros registros asociados",
-                ) from error
-            raise
+        self.repo.mark_deleted(post)
+        self.db.commit()
 
-    def _buscar_visible(self, post_id: int) -> Post:
-        post = self.repo.find_by_id(post_id)
+    def _buscar_visible(self, post_id: int, *, bloquear: bool = False) -> Post:
+        post = self.db.get(Post, post_id, with_for_update=bloquear)
         if post is None or post.oculto:
             raise HTTPException(status_code=404, detail="El post no existe")
         return post

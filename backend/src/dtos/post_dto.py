@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
+
+from src.utils.fechas import FechaUTC
 
 
 class UpdatePostDTO(BaseModel):
@@ -13,6 +13,7 @@ class CreatePostDTO(UpdatePostDTO):
     opinar_primero: bool = False
     comunidad_id: int
     autor_id: int
+    solicitud_id: str | None = None
 
 
 class PostResponseDTO(BaseModel):
@@ -23,7 +24,9 @@ class PostResponseDTO(BaseModel):
     autor_id: int
     titulo: str
     contenido: str | None
-    fecha: datetime
+    fecha: FechaUTC
+    fecha_edicion: FechaUTC | None = None
     oculto: bool
+    eliminado: bool = False
     es_pregunta: bool
     opinar_primero: bool

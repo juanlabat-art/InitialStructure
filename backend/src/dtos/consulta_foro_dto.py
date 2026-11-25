@@ -1,11 +1,10 @@
-from datetime import datetime
-
 from pydantic import BaseModel
 
 from src.dtos.comentario_dto import ComentarioResponseDTO
 from src.dtos.comunidad_dto import ComunidadResponseDTO
 from src.dtos.foro_dto import UsuarioForoDTO
 from src.dtos.post_dto import PostResponseDTO
+from src.utils.fechas import FechaUTC
 
 
 class PerfilDTO(UsuarioForoDTO):
@@ -15,6 +14,7 @@ class PerfilDTO(UsuarioForoDTO):
 
 class KarmaDTO(BaseModel):
     karma: int
+    karma_por_nombramientos: int
     karma_posts: int
     karma_comentarios: int
     votos_positivos_posts: int
@@ -36,7 +36,7 @@ class PostReportadoDTO(PostResponseDTO):
 
 
 class PostGuardadoDetalleDTO(PostResponseDTO):
-    fecha_guardado: datetime
+    fecha_guardado: FechaUTC
 
 
 class UsuarioRankingDTO(BaseModel):

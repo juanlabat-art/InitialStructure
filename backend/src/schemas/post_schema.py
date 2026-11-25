@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, UUID4, field_validator
 
 
 class UpdatePostSchema(BaseModel):
@@ -18,3 +18,4 @@ class CreatePostSchema(UpdatePostSchema):
     opinar_primero: bool = False
     comunidad_id: int = Field(gt=0)
     autor_id: int = Field(gt=0)
+    solicitud_id: UUID4 | None = None

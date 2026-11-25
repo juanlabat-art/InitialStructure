@@ -1,5 +1,9 @@
+from uuid import uuid4
+
 from fastapi import HTTPException
 from sqlalchemy import delete, or_, select
+from sqlalchemy.dialects.postgresql import insert as postgres_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -45,33 +49,47 @@ class UsuarioService:
             raise HTTPException(404, "El usuario no existe")
         return usuario
 
-    def eliminar_cuenta(self, usuario_id: int) -> None:
+    def editar_perfil(self, usuario_id: int, descripcion: str) -> Usuario:
+        usuario = self.get_by_id(usuario_id)
+        usuario.descripcion = descripcion or None
+        self.db.commit()
+        return usuario
+
+    def eliminar_cuenta(self, usuario_id: int, *, preservar_conversaciones: bool = False) -> None:
         try:
-            self._eliminar_cuenta(usuario_id)
+            self._eliminar_cuenta(usuario_id, preservar_conversaciones)
             self.db.commit()
         except IntegrityError as error:
             self.db.rollback()
             raise HTTPException(409, "La cuenta tiene registros asociados que impiden eliminarla") from error
 
-    def _eliminar_cuenta(self, usuario_id: int) -> None:
+    def _eliminar_cuenta(self, usuario_id: int, preservar_conversaciones: bool) -> None:
+        usuario = self.db.get(Usuario, usuario_id)
+        if usuario is None or not usuario.clave_hash:
+            raise HTTPException(404, "La cuenta no existe")
+        if usuario.rol_sitio == "admin":
+            raise HTTPException(409, "La cuenta del administrador general no se puede eliminar desde VoZero")
         comunidades = self.db.scalars(select(Comunidad).where(
             Comunidad.creador_id == usuario_id,
         ).order_by(Comunidad.id).with_for_update()).all()
-        comunidad_ids = [comunidad.id for comunidad in comunidades]
-        PostRepository(self.db).delete_owned(
-            or_(Post.autor_id == usuario_id, Post.comunidad_id.in_(comunidad_ids)),
-            usuario_id,
-        )
-        comunidad_repo = ComunidadRepository(self.db)
-        for comunidad in comunidades:
-            comunidad_repo.delete(comunidad)
+        if preservar_conversaciones:
+            self._preservar_conversaciones(usuario_id, comunidades)
+        else:
+            comunidad_ids = [comunidad.id for comunidad in comunidades]
+            PostRepository(self.db).delete_owned(
+                or_(Post.autor_id == usuario_id, Post.comunidad_id.in_(comunidad_ids)), usuario_id,
+            )
+            comunidad_repo = ComunidadRepository(self.db)
+            for comunidad in comunidades:
+                comunidad_repo.delete(comunidad)
+            comentarios = self.db.scalars(select(Comentario).where(
+                Comentario.autor_id == usuario_id,
+            ).order_by(Comentario.id).with_for_update()).all()
+            comentario_repo = ComentarioRepository(self.db)
+            for comentario in comentarios:
+                comentario_repo.delete(comentario)
 
-        comentarios = self.db.scalars(select(Comentario).where(
-            Comentario.autor_id == usuario_id,
-        ).order_by(Comentario.id).with_for_update()).all()
-        comentario_repo = ComentarioRepository(self.db)
-        for comentario in comentarios:
-            comentario_repo.delete(comentario)
+        self.db.flush()
 
         autores_afectados = select(Post.autor_id).join(VotoPost).where(
             VotoPost.usuario_id == usuario_id,
@@ -86,10 +104,44 @@ class UsuarioService:
         self.db.execute(delete(bans).where(
             or_(bans.c.usuario_id == usuario_id, bans.c.moderador_id == usuario_id),
         ))
-        self.db.execute(delete(Usuario).where(Usuario.id == usuario_id))
+        eliminado = self.db.execute(delete(Usuario).where(
+            Usuario.id == usuario_id, Usuario.rol_sitio != "admin",
+        ))
+        if eliminado.rowcount != 1:
+            raise HTTPException(409, "La cuenta ya no se puede eliminar")
         for autor in autores:
             if autor.id != usuario_id:
                 actualizar_karma(self.db, autor)
+
+    def _preservar_conversaciones(self, usuario_id: int, comunidades: list[Comunidad]) -> None:
+        posts = self.db.scalars(select(Post).where(
+            Post.autor_id == usuario_id,
+        ).order_by(Post.id).with_for_update()).all()
+        comentarios = self.db.scalars(select(Comentario).where(
+            Comentario.autor_id == usuario_id,
+        ).order_by(Comentario.id).with_for_update()).all()
+        if not (posts or comentarios or comunidades):
+            return
+
+        # Las referencias obligatorias usan una cuenta interna que no puede iniciar sesión.
+        email = "cuenta.eliminada@vozero.invalid"
+        insertar = postgres_insert if self.db.get_bind().dialect.name == "postgresql" else sqlite_insert
+        self.db.execute(insertar(Usuario).values(
+            username=f"eliminada.{uuid4().hex[:16]}", email=email,
+        ).on_conflict_do_nothing(index_elements=[Usuario.email]))
+        titular = self.db.scalar(select(Usuario.id).where(Usuario.email == email))
+
+        post_repo = PostRepository(self.db)
+        for post in posts:
+            post_repo.mark_deleted(post)
+            post.autor_id = titular
+            post.solicitud_id = None
+        comentario_repo = ComentarioRepository(self.db)
+        for comentario in comentarios:
+            comentario_repo.mark_deleted(comentario)
+            comentario.autor_id = titular
+        for comunidad in comunidades:
+            comunidad.creador_id = titular
 
     def list_all(self) -> list[Usuario]:
         return self.repo.list_all()

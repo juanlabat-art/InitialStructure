@@ -2,7 +2,7 @@
 import PuntoScreen from "./punto-screen";
 import type { ScreenContext } from "./shared/state";
 import { sortPosts, filters, postCard, noContent } from "./shared/posts";
-import { ico } from "./shared/presentation";
+import { esc, ico } from "./shared/presentation";
 
 function home(context: ScreenContext) {
   const { db, me } = context;
@@ -15,9 +15,19 @@ function home(context: ScreenContext) {
     context,
     db.posts.filter((p) => joined.has(p.communityId)),
   );
-  return `<section class="hero"><div style="position:relative;z-index:2"><div class="eyebrow">${ico("sparkles", 14)} Bienvenido a VoZero</div><h1>Las mejores ideas<br/>empiezan con una pregunta.</h1><p>Conectá, compartí y descubrí otras formas de pensar.</p></div><div class="hero-art"></div></section>
-   <div class="page-head"><div><h2>Tu feed ✨</h2><div class="page-subtitle">Lo que está pasando en tus comunidades</div></div>${filters(context)}</div>
-   <section class="feed-list">${posts.length ? posts.map((item) => postCard(context, item)).join("") : noContent("Tu feed está vacío", "Unite a una comunidad para empezar a ver publicaciones.", "users", "navigate", "communities")}</section>`;
+  const unlocked = context.unlockedConversations.map(({ id, kind }) => {
+    const entry = kind === "post" ? context.post(id) : db.anonymousQuestions.find((question) => question.id === id);
+    if (!entry || ("hidden" in entry && (entry.hidden || entry.deleted))) return "";
+    return `<aside class="answered-info unlock-notice" role="status">
+      ${ico("unlock", 18)}<div><strong>Conversación desbloqueada</strong><a href="/${kind}/${id}">${esc(entry.title)}</a></div>
+      <button type="button" class="icon-btn" data-action="dismiss-unlock" data-id="${id}" data-value="${kind}" aria-label="Cerrar aviso">${ico("x", 17)}</button>
+    </aside>`;
+  }).join("");
+  return `${context.showWelcome ? '<section class="hero"><div style="position:relative;z-index:2"><h1>Bienvenido a VoZero</h1><p>Descubrí comunidades y compartí tu primera publicación.</p></div><div class="hero-art"></div></section>' : ""}
+   ${unlocked}
+   <div class="page-head"><h2>Publicaciones de tus comunidades</h2></div>
+   <div class="page-head community-post-actions">${filters(context)}<button class="btn btn-primary community-publish" data-action="compose">${ico("plus", 18)} Publicar</button></div>
+   <section class="feed-list">${posts.length ? posts.map((item) => postCard(context, item)).join("") : noContent("Todavía no hay publicaciones", "Unite a una comunidad para ver sus publicaciones acá.", "users", "navigate", "communities")}</section>`;
 }
 export default function Screen() {
   return <PuntoScreen view="home" renderScreen={home} />;

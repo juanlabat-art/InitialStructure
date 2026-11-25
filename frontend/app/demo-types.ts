@@ -1,3 +1,5 @@
+import type { AnonymousCategory } from "./shared/anonymous-categories";
+
 export interface User {
   id: string;
   username: string;
@@ -5,6 +7,10 @@ export interface User {
   karmaBase: number;
   joinedAt: string;
   color: string;
+  description?: string;
+  siteRole?: SiteRole;
+  photoVersion?: string;
+  profileVisible?: boolean;
 }
 export interface Community {
   id: string;
@@ -13,10 +19,12 @@ export interface Community {
   creatorId: string;
   nsfw: boolean;
   baseMembers: number;
-  emoji: string;
   bg: string;
   createdAt: string;
+  photoVersion?: string;
 }
+
+export type PhotoTarget = "usuarios" | "comunidades";
 export interface Question {
   id: string;
   title: string;
@@ -24,7 +32,13 @@ export interface Question {
   blindMode: boolean;
   createdAt: string;
 }
+export interface AnonymousQuestion extends Question {
+  category: AnonymousCategory;
+  mine?: boolean;
+}
 export interface Post extends Question {
+  editedAt?: string;
+  deleted?: boolean;
   communityId: string;
   authorId: string;
   baseScore: number;
@@ -40,6 +54,15 @@ export interface Comment {
   createdAt: string;
   baseScore: number;
   deleted: boolean;
+}
+export interface ForumNotification {
+  commentId: number | null;
+  postId: string;
+  author: string;
+  title: string;
+  isReply: boolean;
+  read: boolean;
+  createdAt: string;
 }
 interface Vote {
   userId: string;
@@ -68,6 +91,7 @@ export interface DemoData {
   commentVotes: (Vote & { commentId: string })[];
   saved: SavedPost[];
   reports: (SavedPost & { id: string; reason: string })[];
+  reportedComments?: string[];
   bans: {
     id: string;
     communityId: string;
@@ -76,15 +100,27 @@ export interface DemoData {
     reason: string;
     until: string | null;
   }[];
-  anonymousQuestions: Question[];
+  anonymousQuestions: AnonymousQuestion[];
   anonymousAnswers: {
     id: string;
     questionId: string;
     text: string;
     createdAt: string;
+    mine?: boolean;
   }[];
   anonymousUnlocks: { questionId: string; sessionToken: string }[];
   sessionToken: string;
+}
+
+export type HeaderMenu = "profile" | "notifications";
+export type SiteRole = "usuario" | "subadmin" | "admin";
+export type AdminContentSection = "posts" | "comentarios" | "preguntas" | "respuestas";
+export type AdminSection = AdminContentSection | "subadmins" | "usuarios";
+
+export interface AdminSelection {
+  section: AdminSection;
+  page: number;
+  query: string;
 }
 
 export interface ViewState {
@@ -96,11 +132,16 @@ export interface ViewState {
     | "anonymous"
     | "anonDetail"
     | "profile"
+    | "users"
+    | "userProfile"
+    | "admin"
     | "saved"
     | "search"
     | "newPost"
+    | "editPost"
     | "newAnonymous"
     | "newCommunity"
+    | "login"
     | "register"
     | "report"
     | "ban"
@@ -109,11 +150,13 @@ export interface ViewState {
   communityId: string;
   postId: string | null;
   anonId: string | null;
+  profileUsername: string;
   sort: string;
   tab: string;
   composerType: string;
-  profileMenu: boolean;
+  openMenu: HeaderMenu | null;
   replyTo: string | null;
+  editingCommentId: string | null;
   query: string;
   reportId: string | null;
   banUserId: string | null;

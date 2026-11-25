@@ -15,7 +15,7 @@ function moderation(context: ScreenContext, cid: string) {
     );
   const ps = db.posts.filter(
     (p) =>
-      p.communityId === cid &&
+      p.communityId === cid && !p.deleted &&
       (p.hidden || db.reports.some((r) => r.postId === p.id)),
   );
   const members = db.memberships.filter((m) => m.communityId === cid);

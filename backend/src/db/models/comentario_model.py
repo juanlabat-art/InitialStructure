@@ -27,7 +27,7 @@ class Comentario(Base):
     )
     texto = Column(Text, nullable=False)
     fecha = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )

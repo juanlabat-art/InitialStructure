@@ -1,11 +1,27 @@
 "use client";
 import PuntoScreen from "../punto-screen";
+import { backToHome } from "../shared/chrome";
 import type { ScreenContext } from "../shared/state";
 import { ico, cicon, esc, count } from "../shared/presentation";
 
 function communities(context: ScreenContext) {
   const { db, memberCount, membership, me } = context;
-  return `<div class="page-head"><div><h2>Explorá comunidades 🌎</h2><div class="page-subtitle">Encontrá gente que comparte tus intereses.</div></div><button class="btn btn-primary btn-sm" data-action="create-community">${ico("plus", 15)} Crear comunidad</button></div><div class="community-grid">${db.communities.map((c) => `<article class="card community-tile">${cicon(c, 47)}<h3>${esc(c.name)}</h3><p>${esc(c.description)}</p><div class="comm-meta">${count(memberCount(c.id))} miembros ${membership(me().id, c.id) ? "· Ya sos miembro" : ""}</div><button class="btn btn-sm ${membership(me().id, c.id) ? "btn-light" : "btn-primary"}" data-action="open-community" data-id="${c.id}">${membership(me().id, c.id) ? "Ver comunidad" : "Conocer comunidad"} ${ico("back", 12)}</button></article>`).join("")}</div>`;
+  return `${backToHome()}
+  <div class="page-head">
+    <div><h2>Explorar comunidades</h2><div class="page-subtitle">Encontrá comunidades sobre temas de tu interés.</div></div>
+    <button class="btn btn-primary btn-sm" data-action="create-community">${ico("plus", 15)} Crear comunidad</button>
+  </div>
+  <div class="community-grid">${db.communities.map((community) => {
+    const joined = membership(me().id, community.id);
+    return `<article class="card community-tile">
+      ${cicon(community, 47)}
+      <h3>${esc(community.name)}</h3>
+      <p>${esc(community.description)}</p>
+      <div class="comm-meta">${count(memberCount(community.id))} miembros${joined ? " · Ya sos miembro" : ""}</div>
+      <button class="btn btn-sm btn-outline" data-action="open-community" data-id="${community.id}">${joined ? "Ver comunidad" : "Conocer comunidad"}</button>
+      ${joined ? "" : `<button class="btn btn-sm btn-primary" data-action="join" data-id="${community.id}">${ico("plus", 14)} Unirme</button>`}
+    </article>`;
+  }).join("")}</div>`;
 }
 export default function Screen() {
   return <PuntoScreen view="communities" renderScreen={communities} />;

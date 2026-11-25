@@ -1,16 +1,63 @@
 import type {
+  AdminSelection,
   Comment,
   DemoData,
+  ForumNotification,
   Post,
   Question,
+  SiteRole,
+  User,
   ViewState,
 } from "../demo-types";
 import { forumApi } from "./api";
 
 const STORAGE = "punto_session_v1";
-const guest = {
+let newAccountId: string | null = null;
+
+type Conversation = { id: string; kind: "post" | "anonymous" };
+const pendingUnlocks = new Map<string, Conversation[]>();
+
+function getPendingUnlocks(userId: string) {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(`vozero_unlocks_${userId}`) ?? "null");
+    if (Array.isArray(stored)) {
+      return stored.filter((item): item is Conversation =>
+        item && ["post", "anonymous"].includes(item.kind) && /^[1-9]\d*$/.test(item.id),
+      );
+    }
+  } catch {
+    // Keep notices available in memory when browser storage is disabled.
+  }
+  return pendingUnlocks.get(userId) ?? [];
+}
+
+export function rememberUnlockedConversation(userId: string, conversation: Conversation) {
+  const entries = getPendingUnlocks(userId);
+  if (entries.some(({ id, kind }) => id === conversation.id && kind === conversation.kind)) return;
+  const next = [...entries, conversation];
+  pendingUnlocks.set(userId, next);
+  try {
+    localStorage.setItem(`vozero_unlocks_${userId}`, JSON.stringify(next));
+  } catch {
+    // The notice is still available in this tab.
+  }
+}
+
+export function clearBrowserSession() {
+  try {
+    localStorage.removeItem(STORAGE);
+  } catch {
+    // The account session is closed independently of browser storage.
+  }
+}
+
+export function showWelcomeForNewAccount(userId: string) {
+  newAccountId = userId;
+}
+
+const guest: User = {
   id: "",
-  username: "invitado",
+  username: "",
   email: "",
   karmaBase: 0,
   joinedAt: "2026-01-01T00:00:00Z",
@@ -22,8 +69,15 @@ export function createScreenContext(
   routeId?: string,
   query?: string,
   targetId?: string,
+  adminSelection?: AdminSelection,
 ) {
   const db = browserState();
+  let showWelcome = false;
+  let unlockedConversations: Conversation[] | null = null;
+  let votesToNextKarma: number | null = null;
+  let siteRole: SiteRole | null = null;
+  let adminEntries: Awaited<ReturnType<typeof forumApi.adminEntries>> | null = null;
+  let adminError = "";
   let karma: Awaited<ReturnType<typeof forumApi.karma>> | null = null;
   let ranking: Awaited<ReturnType<typeof forumApi.ranking>> = [];
   try {
@@ -48,7 +102,7 @@ export function createScreenContext(
     }
   };
   const postId =
-    routeId && (view === "postDetail" || view === "report")
+    routeId && ["postDetail", "editPost", "report"].includes(view)
       ? (db.posts.find((p) => p.id === routeId)?.id ??
         db.posts.find((p) => p.id === "p" + routeId)?.id ??
         routeId)
@@ -68,6 +122,7 @@ export function createScreenContext(
         : (db.posts.find((p) => p.id === postId)?.communityId ?? "c2"),
     postId,
     anonId: view === "anonDetail" ? (routeId ?? null) : null,
+    profileUsername: view === "userProfile" ? (routeId ?? "").toLowerCase() : "",
     sort: "hot",
     tab:
       view === "communityRanking"
@@ -76,8 +131,9 @@ export function createScreenContext(
           ? "mod"
           : "posts",
     composerType: "post",
-    profileMenu: false,
+    openMenu: null,
     replyTo: null,
+    editingCommentId: null,
     query: query ?? "",
     reportId: view === "report" ? postId : null,
     banUserId: targetId ?? null,
@@ -126,6 +182,7 @@ export function createScreenContext(
     db.comments.filter((c) => c.postId === pid).length;
   const numberOfAnonAnswers = (qid: string) =>
     db.anonymousAnswers.filter((a) => a.questionId === qid).length;
+  const notifications: ForumNotification[] = [];
   function browserState(): DemoData {
     return {
       version: 1,
@@ -147,9 +204,38 @@ export function createScreenContext(
     };
   }
   async function connect(signal: AbortSignal) {
-    const data = await forumApi.load(db.sessionToken, signal);
+    const { votesToNextKarma: remainingVotes, siteRole: currentRole, ...data } = await forumApi.load(db.sessionToken, signal);
+    signal.throwIfAborted();
     Object.assign(db, data);
-    if (view === "profile") {
+    votesToNextKarma = remainingVotes;
+    siteRole = currentRole;
+    if (adminSelection) {
+      adminEntries = null;
+      adminError = "";
+      const adminOnly = adminSelection.section === "subadmins" || adminSelection.section === "usuarios";
+      const allowed = siteRole === "admin" || (siteRole === "subadmin" && !adminOnly);
+      if (allowed) {
+        try {
+          adminEntries = await forumApi.adminEntries(adminSelection, signal);
+        } catch (error) {
+          adminError = error instanceof Error ? error.message : "No se pudo cargar el panel de administración.";
+        }
+      }
+    }
+    if (view === "home" && newAccountId && db.currentUserId === newAccountId) {
+      showWelcome = true;
+      newAccountId = null;
+    }
+    if (view === "home" && db.currentUserId && unlockedConversations === null) {
+      unlockedConversations = getPendingUnlocks(db.currentUserId);
+      pendingUnlocks.delete(db.currentUserId);
+      try {
+        localStorage.removeItem(`vozero_unlocks_${db.currentUserId}`);
+      } catch {
+        // The notice can still be dismissed in this tab.
+      }
+    }
+    if (view === "profile" || (view === "userProfile" && ui.profileUsername === me().username.toLowerCase())) {
       karma = db.currentUserId ? await forumApi.karma(db.currentUserId, signal) : null;
     }
     if (view === "communityRanking" && routeId && comm(routeId)) {
@@ -171,6 +257,7 @@ export function createScreenContext(
       return db;
     },
     ui,
+    notifications,
     me,
     user,
     comm,
@@ -189,6 +276,28 @@ export function createScreenContext(
     numberOfAnonAnswers,
     votesFor,
     connect,
+    adminSelection,
+    get siteRole() {
+      return siteRole;
+    },
+    get adminEntries() {
+      return adminEntries;
+    },
+    get adminError() {
+      return adminError;
+    },
+    get showWelcome() {
+      return showWelcome;
+    },
+    get unlockedConversations() {
+      return unlockedConversations ?? [];
+    },
+    dismissUnlockedConversation(id: string, kind: string | undefined) {
+      unlockedConversations = unlockedConversations?.filter((item) => item.id !== id || item.kind !== kind) ?? [];
+    },
+    get votesToNextKarma() {
+      return votesToNextKarma;
+    },
     get karma() {
       return karma;
     },

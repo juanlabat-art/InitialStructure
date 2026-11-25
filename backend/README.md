@@ -26,7 +26,7 @@ Estructura base de un proyecto en capas (routers, services, repositories, models
 
 En Windows, `INICIAR.bat` (en la raíz) levanta FastAPI y el frontend juntos. Para arrancar solo FastAPI desde `backend/`, instalá `requirements.txt` y corré `python -m src.main`. Sin un archivo `.env`, se crea una base local SQLite con datos iniciales. Para usar PostgreSQL, seguí la configuración de la sección siguiente y creá la base antes de iniciar el servidor.
 
-El frontend consulta `GET /api/foro/` y usa los endpoints de usuarios, comunidades, publicaciones, comentarios, votos y acciones del foro para las escrituras. Las cuentas usan contraseña y una cookie de sesión `HttpOnly` con un JWT firmado que vence a los siete días. La API comprueba la vigencia de la sesión en la base de datos y la revoca al cerrar sesión. Usá el menú de cuenta para entrar o registrarte. En Swagger podés ingresar con `POST /api/usuario/sesion`. El navegador envía la cookie al probar operaciones que requieren sesión.
+El frontend consulta `GET /api/foro/` y usa los endpoints de usuarios, comunidades, publicaciones, comentarios, votos y acciones del foro. Para leer o publicar contenido se necesita una sesión. Las cuentas usan contraseña y una cookie de sesión `HttpOnly` con un JWT firmado que vence a los siete días. La API comprueba la vigencia de la sesión en la base de datos y la revoca al cerrar sesión. En Swagger podés ingresar con `POST /api/usuario/sesion`. El navegador envía la cookie al probar las operaciones del foro.
 
 Las operaciones que cambian datos del foro requieren sesión. Las preguntas y respuestas anónimas siguen sin guardar el autor, pero requieren una cuenta para publicarse. Solo el autor puede borrar sus posts y comentarios, y solo el creador puede borrar su comunidad. Los moderadores pueden ocultar publicaciones y gestionar miembros según su rol.
 
@@ -35,6 +35,18 @@ Configurá `VOZERO_JWT_SECRET` en `backend/.env` o en el entorno del servidor pa
 Las cuentas creadas antes de este cambio y las cuentas de ejemplo conservan sus datos. Para habilitar una de esas cuentas, iniciá la API una vez para actualizar el esquema y después ejecutá `python -m src.asignar_clave nombre_de_usuario` desde `backend/` con el mismo entorno que usa la API.
 
 En una base PostgreSQL vacía, podés cargar los datos de ejemplo con `src/db/tables.sql` y luego `src/db/inserts.sql` antes de iniciar la API. Las comunidades iniciales permiten participar y ganar karma con una cuenta nueva. En SQLite local se crean automáticamente.
+
+## Administración de VoZero
+
+Con la API iniciada y una cuenta registrada, asigná el administrador general desde `backend/` usando el mismo entorno de Python que la API.
+
+```bash
+python -m src.asignar_admin nombre_de_usuario
+```
+
+Hay un solo administrador general. Desde **Administración → Subadmins** puede dar o retirar el rol de subadmin. Ambos roles pueden ocultar y mostrar publicaciones, y eliminar publicaciones, comentarios, preguntas anónimas y sus respuestas desde el panel del sitio.
+
+Cada nombramiento como subadmin suma 10 puntos de karma que quedan en la cuenta. El premio se suma al karma obtenido por votos.
 
 ## Karma del foro
 

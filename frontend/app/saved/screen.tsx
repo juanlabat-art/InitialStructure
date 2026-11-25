@@ -11,7 +11,7 @@ function savedView(context: ScreenContext) {
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
     .map((s) => post(s.postId))
     .filter((p): p is Post => p !== undefined && !p.hidden);
-  return `<div class="page-head"><div><h2>Tus guardados 🔖</h2><div class="page-subtitle">Publicaciones a las que querés volver.</div></div></div><div class="feed-list">${saved.length ? saved.map((item) => postCard(context, item)).join("") : noContent("Todavía no guardaste posts", "Tocá “Guardar” en cualquier publicación para tenerla acá.", "bookmark")}</div>`;
+  return `<div class="page-head"><h2>Publicaciones guardadas</h2></div><div class="feed-list">${saved.length ? saved.map((item) => postCard(context, item)).join("") : noContent("Todavía no guardaste publicaciones", "Seleccioná «Guardar» en una publicación para encontrarla acá.", "bookmark")}</div>`;
 }
 export default function Screen() {
   return <PuntoScreen view="saved" renderScreen={savedView} />;

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 const commentVote = /\/foro\/comentarios\/[1-9][0-9]*\/voto/;
 const voteUpdatePath = new RegExp(`^(?:/votos-post/|${commentVote.source})(?![\\s\\S])`);
 const deletePath = new RegExp(
-  `^(?:/usuario/cuenta|/(?:comunidad|post|comentario)/[1-9][0-9]*|/votos-post/[1-9][0-9]*/[1-9][0-9]*|${commentVote.source})(?![\\s\\S])`,
+  `^(?:/usuario/cuenta|/(?:comunidad|post|comentario|admin/(?:posts|comentarios|preguntas|respuestas|usuarios))/[1-9][0-9]*|/votos-post/[1-9][0-9]*/[1-9][0-9]*|${commentVote.source})(?![\\s\\S])`,
 );
 
 async function forward(request: NextRequest, method: "DELETE" | "PUT", allowedPath: RegExp) {

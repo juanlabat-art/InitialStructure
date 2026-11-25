@@ -10,6 +10,7 @@ from src.dtos.comentario_dto import (
 )
 from src.schemas.comentario_schema import (
     CreateComentarioSchema,
+    ReportarComentarioSchema,
     UpdateComentarioSchema,
 )
 from src.services.comentario_service import ComentarioService
@@ -86,3 +87,9 @@ def delete_comentario(
 ):
     ComentarioService(db).delete(comentario_id, actor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{comentario_id}/reportes", status_code=204)
+def reportar_comentario(comentario_id: int, payload: ReportarComentarioSchema,
+                        actor=Depends(usuario_actual), db: Session = Depends(get_db)):
+    ComentarioService(db).reportar(comentario_id, actor, payload.motivo)

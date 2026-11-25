@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict
+
+from src.utils.fechas import FechaUTC
 
 
 class UpdateComentarioDTO(BaseModel):
@@ -21,5 +21,5 @@ class ComentarioResponseDTO(BaseModel):
     autor_id: int
     comentario_padre_id: int | None
     texto: str
-    fecha: datetime
+    fecha: FechaUTC
     eliminado: bool

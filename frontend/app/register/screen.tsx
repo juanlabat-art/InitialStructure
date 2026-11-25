@@ -2,26 +2,24 @@
 import PuntoScreen from "../punto-screen";
 import { formPanel } from "../shared/form-panel";
 
-function accountForms() {
+function registerForm() {
   return formPanel(
-    "Tu cuenta de VoZero",
-    `<form data-form="login">
-      <h2>Iniciar sesión</h2>
-      <div class="form-field"><label for="login-user">Nombre de usuario</label><input id="login-user" name="username" autocomplete="username" required /></div>
-      <div class="form-field"><label for="login-password">Contraseña</label><input id="login-password" name="clave" type="password" autocomplete="current-password" required /></div>
-      <button class="btn btn-primary" type="submit">Ingresar</button>
-    </form>
-    <form data-form="register">
-      <h2>Crear cuenta</h2>
+    "Crear cuenta",
+    `<form class="account-form" data-form="register">
       <div class="form-field"><label for="new-user">Nombre de usuario</label><input id="new-user" name="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_.]+" autocomplete="username" required /></div>
       <div class="form-field"><label for="new-email">Email</label><input id="new-email" name="email" type="email" autocomplete="email" required /></div>
-      <div class="form-field"><label for="new-password">Contraseña (mínimo 8 caracteres)</label><input id="new-password" name="clave" type="password" minlength="8" maxlength="128" autocomplete="new-password" required /></div>
+      <div class="form-field">
+        <label for="new-password">Contraseña</label>
+        <input id="new-password" name="clave" type="password" minlength="8" maxlength="128" pattern="(?=.*\\p{Lu})(?=.*[0-9])(?=.*[\\p{P}\\p{S}]).*" autocomplete="new-password" aria-describedby="password-requirements" title="Al menos 8 caracteres, una mayúscula, un número y un carácter especial" required />
+        <p class="form-help" id="password-requirements">Usá al menos 8 caracteres, una mayúscula, un número y un carácter especial, como ! o #.</p>
+      </div>
       <button class="btn btn-primary" type="submit">Crear cuenta</button>
-    </form>`,
+    </form>
+    <a class="btn btn-outline account-switch" href="/login">¿Ya tenés una cuenta? Iniciá sesión</a>`,
     true,
   );
 }
 
 export default function Screen() {
-  return <PuntoScreen view="register" renderScreen={accountForms} />;
+  return <PuntoScreen view="register" renderScreen={registerForm} />;
 }

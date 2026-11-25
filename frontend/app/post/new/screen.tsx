@@ -6,8 +6,20 @@ import type { ScreenContext } from "../../shared/state";
 
 function composerModal(context: ScreenContext) {
   const { db, me, banned, ui, comm } = context;
+  const userId = me().id;
+  if (!userId) {
+    return formPanel(
+      "Crear publicación",
+      `<p>Iniciá sesión o creá una cuenta para publicar.</p>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" data-action="navigate" data-view="register">Crear cuenta</button>
+        <button type="button" class="btn btn-primary" data-action="open-login">Iniciar sesión</button>
+      </div>`,
+      true,
+    );
+  }
   const joined = db.memberships.filter(
-    (m) => m.userId === me().id && !banned(me().id, m.communityId),
+    (m) => m.userId === userId && !banned(userId, m.communityId),
   );
   const current =
     joined.find((m) => m.communityId === ui.communityId)?.communityId ||
