@@ -253,7 +253,11 @@
 .photo-editor { padding-top: 12px; border-top: 1px solid var(--line); }
 .route-form .photo-editor { margin-top: 20px; }
 .photo-editor input { min-width: 0; max-width: 100%; }
+.photo-preview { margin: 0 0 12px; }
+.photo-preview figcaption { margin-bottom: 6px; color: var(--ink-secondary); font-size: 12px; }
+.photo-preview img { display: block; object-fit: cover; border: 1px solid var(--line); border-radius: 12px; }
 .photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-actions .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 .profile-stats small { display: block; }
 .user-profile-link { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 a.user-profile-link { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }

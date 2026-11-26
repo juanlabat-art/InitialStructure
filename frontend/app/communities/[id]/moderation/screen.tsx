@@ -24,7 +24,7 @@ function moderation(context: ScreenContext, cid: string) {
       .map((m) => {
         const u = user(m.userId);
         if (!u) return "";
-        return `<div class="rank-item">${av(u, "small")}<div><span class="rank-user">u/${esc(u.username)}</span><div class="post-date">${m.role}</div></div><span class="foot-gap"></span>${m.role !== "moderador" ? `<button class="btn btn-sm btn-outline" data-action="promote" data-id="${u.id}" data-community="${cid}">Hacer mod</button><button class="btn btn-sm btn-danger" data-action="ban-modal" data-id="${u.id}">Banear</button>` : '<span class="tag green">Moderador</span>'}</div>`;
+        return `<div class="rank-item">${av(u, "small")}<div><span class="rank-user">${esc(u.username)}</span><div class="post-date">${m.role}</div></div><span class="foot-gap"></span>${m.role !== "moderador" ? `<button class="btn btn-sm btn-outline" data-action="promote" data-id="${u.id}" data-community="${cid}">Hacer mod</button><button class="btn btn-sm btn-danger" data-action="ban-modal" data-id="${u.id}">Banear</button>` : '<span class="tag green">Moderador</span>'}</div>`;
       })
       .join("")}</div>`;
 }

@@ -8,9 +8,9 @@ export function matchUsers(users: User[], query: string) {
     .sort((a, b) => Number(b.username === term) - Number(a.username === term) || a.username.localeCompare(b.username, "es-AR"));
 }
 
-export function userList(users: User[], options: { showUserPrefix?: boolean } = {}) {
+export function userList(users: User[]) {
   return `<ul class="card user-list">${users.map((user) => `<li>
-    ${userProfileLink(user, { avatar: true, ...options })}
+    ${userProfileLink(user, { avatar: true })}
     <small>${esc(user.karmaBase)} karma</small>
   </li>`).join("")}</ul>`;
 }

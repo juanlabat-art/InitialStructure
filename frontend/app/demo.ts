@@ -4,7 +4,7 @@ import { dateLabel, esc } from "./shared/presentation";
 import { ApiError, forumApi } from "./shared/api";
 import { isAnonymousCategory } from "./shared/anonymous-categories";
 import { reportReasons } from "./shared/reports";
-import { maxPhotoBytes } from "./shared/photos";
+import { maxPhotoBytes, mountPhotoPreview } from "./shared/photos";
 import { clearBrowserSession, createScreenContext, rememberUnlockedConversation, showWelcomeForNewAccount, type ScreenRenderer } from "./shared/state";
 
 const SIDEBAR_STORAGE = "vozero_sidebar_collapsed";
@@ -94,6 +94,7 @@ export function mountPunto(
   adminSelection?: AdminSelection,
 ) {
   const listeners = new AbortController();
+  let disposePhotoPreview: (() => void) | undefined;
   const accountPage = view === "login" || view === "register";
   const mobileViewport = window.matchMedia("(max-width: 870px)");
   let desktopSidebarCollapsed = false;
@@ -159,6 +160,7 @@ export function mountPunto(
     setTimeout(() => message?.remove(), 3300);
   }
   function redirectToLogin() {
+    disposePhotoPreview?.();
     app.replaceChildren();
     navigate("/login", true);
   }
@@ -183,6 +185,7 @@ export function mountPunto(
   function render() {
     const active = document.activeElement;
     const content = renderScreen(context);
+    disposePhotoPreview?.();
     sidebarResize = null;
     app.innerHTML = accountPage
       ? `<main class="account-screen">${content}</main>`
@@ -191,6 +194,8 @@ export function mountPunto(
           <div class="app-workspace">${header(context)}<div class="layout"><main class="main">${content}</main>${rightbar(context)}</div></div>
           <div class="sidebar-backdrop" data-action="close-sidebar" aria-hidden="true"></div>
         </div>`;
+    const photoForm = app.querySelector<HTMLFormElement>('.photo-editor[data-target="usuarios"]');
+    disposePhotoPreview = photoForm ? mountPhotoPreview(photoForm) : undefined;
     if (!accountPage) updateSidebar();
     if (app.querySelector(".route-form")) {
       app
@@ -1156,6 +1161,7 @@ export function mountPunto(
     window.clearInterval(notificationTimer);
     window.clearInterval(clockTimer);
     listeners.abort();
+    disposePhotoPreview?.();
     actionDialog?.close("cancel");
   };
 }

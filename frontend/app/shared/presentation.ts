@@ -123,10 +123,9 @@ export const av = (u: User | undefined, size = "") =>
 
 export function userProfileLink(
   user: User | undefined,
-  { avatar, prefix, showUserPrefix = true }: { avatar?: boolean; prefix?: string; showUserPrefix?: boolean } = {},
+  { avatar, prefix }: { avatar?: boolean; prefix?: string } = {},
 ) {
-  const userPrefix = showUserPrefix ? "u/" : "";
-  const name = esc(user?.username ? `${userPrefix}${user.username}` : "Usuario eliminado");
+  const name = esc(user?.username || "Usuario eliminado");
   const label = `${avatar ? av(user, "small") : ""}<span>${esc(prefix)}${name}</span>`;
   return user?.profileVisible
     ? `<a class="user-profile-link" href="/users/${encodeURIComponent(user.username)}">${label}</a>`
