@@ -121,9 +121,13 @@ function photo(target: PhotoTarget, entity?: User | Community) {
 export const av = (u: User | undefined, size = "") =>
   `<span class="avatar photo-slot ${esc(u?.color || "")} ${size}" title="${esc(u?.username || "usuario")}">${photo("usuarios", u) || esc(initials(u?.username || "u"))}</span>`;
 
-export function userProfileLink(user: User | undefined, options: { avatar?: boolean; prefix?: string } = {}) {
-  const name = esc(user?.username ? `u/${user.username}` : "Usuario eliminado");
-  const label = `${options.avatar ? av(user, "small") : ""}<span>${esc(options.prefix)}${name}</span>`;
+export function userProfileLink(
+  user: User | undefined,
+  { avatar, prefix, showUserPrefix = true }: { avatar?: boolean; prefix?: string; showUserPrefix?: boolean } = {},
+) {
+  const userPrefix = showUserPrefix ? "u/" : "";
+  const name = esc(user?.username ? `${userPrefix}${user.username}` : "Usuario eliminado");
+  const label = `${avatar ? av(user, "small") : ""}<span>${esc(prefix)}${name}</span>`;
   return user?.profileVisible
     ? `<a class="user-profile-link" href="/users/${encodeURIComponent(user.username)}">${label}</a>`
     : `<span class="user-profile-link">${label}</span>`;

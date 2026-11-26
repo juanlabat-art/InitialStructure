@@ -20,7 +20,7 @@ function users(context: ScreenContext, query: string, requestedPage: number) {
       <div><input class="search-input" id="user-search" name="q" type="search" maxlength="100" value="${esc(query)}" />
       <button class="btn btn-primary" type="submit">Buscar</button></div>
     </form>
-    ${list.length ? userList(list) : noContent("No encontramos usuarios", "Probá con otro nombre de usuario.", "search")}
+    ${list.length ? userList(list, { showUserPrefix: false }) : noContent("No encontramos usuarios", "Probá con otro nombre de usuario.", "search")}
     ${pages > 1 ? `<nav class="admin-pagination" aria-label="Páginas de usuarios">
       ${page > 1 ? `<a class="btn btn-sm btn-outline" href="${esc(userDirectoryHref(query, page - 1))}">Anterior</a>` : ""}
       ${page < pages ? `<a class="btn btn-sm btn-outline" href="${esc(userDirectoryHref(query, page + 1))}">Siguiente</a>` : ""}
