@@ -1,91 +1,57 @@
-## Como arrancar el proyecto
+# VoZero · Ideas sin eco
 
-Para iniciar VoZero completo en Windows, ejecutá `INICIAR.bat` desde la raíz y abrí http://localhost:3000. La primera ejecución instala las dependencias y requiere Python y Node.js. Los detalles de configuración están en [el README del frontend](frontend/README.md).
+VoZero es un foro de comunidades donde podés publicar, conversar, votar y guardar contenido. El proyecto incluye una aplicación web en Next.js y una API en FastAPI que guarda los datos en PostgreSQL o SQLite.
 
-Lo primero que deben saber es que el proyecto tiene 2 partes. Un fronted y un backend.
+## El diferencial de VoZero
 
-El proyecto debe tener un diferencial/valor agregado DISTINTO a la aplicacion/web elegida.
-Este diferencial debe utilizar el core/nucleo (lo que la hace que tenga sentido que exista) y debe estar validado por el profesor (YO)
+**Opiná primero** permite plantear una pregunta sin que las respuestas existentes condicionen la primera opinión de quien participa. Al crear una pregunta, activá esta opción. Quien entra puede leer la consigna y escribir su respuesta. Después de publicarla, puede leer las demás.
 
-## Frontend
+La regla también se aplica en la API. En una publicación de comunidad, el autor puede seguir su propia conversación y el resto de las cuentas la desbloquea al comentar. En el espacio anónimo, el desbloqueo se registra por cuenta y por pregunta. Ahí, las respuestas se muestran sin nombre de usuario.
 
-Es la parte que interactua el usuario. Aca tenemos el diseño de aplicacion.
+## Cómo iniciar el proyecto
 
-### Como arranco con el frontend?
+En Windows, instalá Node.js 20.9 o superior y Python 3.12 o 3.13. Ejecutá `INICIAR.bat` desde la raíz. El script prepara el entorno virtual, instala las dependencias, levanta ambos servicios y abre el sitio cuando responden.
 
-1) Elegir cualquier IA generativa para realizar las pantallas, flujo de la aplicacion y diseño. Opciones recomendadas:
-- Lovable
-- FigmaMake
-- V0
-- Otra IA como Codex (ChatGPT) o Claude
+| Servicio | Dirección habitual |
+| --- | --- |
+| VoZero | [127.0.0.1:3000](http://127.0.0.1:3000) |
+| Documentación interactiva de la API | [Swagger](http://127.0.0.1:8000/docs) |
+| Estado de la API | [Health](http://127.0.0.1:8000/health) |
 
-2) Realizar un prompt a esta IA seleccionada para que realice el frontend. Ejemplo de prompt:
-```
-[Pegan la consigna (TODO el archivo con las HU, tablas, etc.)]
-[Diferencial que tienen]
-Realizame el frontend de esta aplicacion utilizando TypeScript y dejame comentados los endpoints de la app ya que ya tengo mi propio backend.
-```
+Sin `backend/.env`, podés empezar con SQLite y datos de ejemplo. Para trabajar con PostgreSQL, creá una base local y configurá `DATABASE_URL` antes de arrancar. Usá el mismo origen web durante la prueba, ya que el navegador guarda la sesión para el host que usaste al ingresar.
 
-Aclaracion: El diseño elegido no puede ser una copia exacta de la app
+## Qué podés hacer
 
-3) Una vez que esta el proyecto hecho por la IA elegida, exportarlo a github, copiar su codigo y pegarlo en la carpeta que dice `/frontend` (Borrar todo lo que tiene antes)
+| Sección | Funciones |
+| --- | --- |
+| Inicio y búsqueda | Explorar publicaciones y buscar por texto, comunidad o nombre de usuario. |
+| Comunidades | Unirte, publicar, ver el ranking y, con 10 de karma, crear una comunidad. |
+| Publicaciones | Leer, comentar, responder a otros comentarios, votar, guardar y reportar. |
+| Anónimo | Hacer preguntas y responder sin mostrar tu nombre de usuario. |
+| Usuarios y perfil | Buscar cuentas, visitar perfiles, consultar el karma y editar tu descripción o foto. |
+| Notificaciones | Ver avisos de comentarios y respuestas. El administrador general también recibe avisos de publicaciones que alcanzan cinco reportes. |
+| Moderación y administración | Gestionar miembros y publicaciones de una comunidad según el rol, o moderar el sitio desde el panel de administración. |
 
-4) Levantar el frontend utilizando (lo mas problable) `bun`. Aclaracion: cuando ya tengan el frontend, revisen el archivo `README.md` del proyecto de frontend que les hizo la IA para ver como levantarlo
+## Cómo se conectan las partes
 
-## Backend
+El navegador carga las páginas de Next.js y consulta `/api` en el mismo origen. Next.js reenvía esas solicitudes a FastAPI. La API valida la sesión y los permisos, aplica las reglas del foro y usa SQLAlchemy para leer o guardar los datos. El frontend actualiza la pantalla con la respuesta.
 
-## Como arranco con el backend?
+- [Frontend](frontend/README.md) explica las pantallas, el estado, la integración con la API y la vista previa de fotos.
+- [Backend](backend/README.md) explica el arranque manual, las capas de FastAPI, los datos y las reglas del foro.
+- [Esquema de la base](backend/src/db/tables.sql) contiene las tablas y relaciones de PostgreSQL. Podés inspeccionar una base iniciada desde pgAdmin.
 
-### Tablas y Base de Datos (pgAdmin)
+## Karma y recomendaciones para la demo
 
-1) Miro la consigna de mi proyecto y me fijo que entidades tengo, de ahi ya se que tablas voy a tener que crear
+El karma se calcula a partir de los votos positivos de otras cuentas sobre tus publicaciones y comentarios. Del nivel 1 al 15, el costo adicional de cada nivel coincide con su número. Por ejemplo, llegar al nivel 3 requiere 1 + 2 + 3 = 6 votos, y llegar al nivel 10 requiere 55. A partir del nivel 16, el costo crece un 25 % por nivel, redondeado hacia arriba, hasta un máximo de 1.000 votos adicionales por nivel. Los puntos obtenidos por nombramientos como subadmin se suman por separado. [Implementación del cálculo](backend/src/services/karma_service.py)
 
-2) Creo las tablas a mano o con alguna IA para apurar (pasarle TODA la consigna)
+1. Registrá dos cuentas de prueba y unilas a la misma comunidad.
+2. Con una cuenta, publicá una pregunta con **Opiná primero** y agregá un comentario.
+3. Abrí la pregunta con la segunda cuenta. Respondé y comprobá que aparecen los comentarios previos. Volvé a la primera cuenta para ver el aviso en la campanita.
+4. Desde **Mi perfil → Editar perfil**, elegí una foto. Tocá la vista previa para ver el recorte ampliado y guardala cuando esté lista.
+5. Para probar la moderación automática, usá una publicación de prueba. Reportala desde cinco cuentas distintas a la del autor y revisá el aviso del administrador general. [Asignar el administrador](backend/README.md#administración)
 
-3) Abro pgAdmin y creo una base de datos con el nombre del proyecto
+## Decisiones técnicas del proyecto
 
-4) Abro la terminal del pgAdmin para ejecutar una query. Ahi pego el archivo con todas las tablas y lo ejecuto 1 sola vez (si es que no fallo)
-
-5) Una vez que tenemos la base creada, vamos al VisualStudio, abro `/src/db/tables.sql` y pego el .sql con las tablas que acabo de crear
-
-### Codigo (VisualStudio)
-
-Como ya tenemos la base creada, arrancamos con el proyecto (estructura del proyecto: https://github.com/Programacion-4to/2026/blob/main/U3%3A%20Bases%20de%20datos%2C%20SQL%2C%20Model%20y%20Schemas/Estructura%20de%20Proyecto.md)
-
-
-Antes de que se manden a hacer de todo, arranquen con estos pasos pero solo para 1 tabla/entidad, luego hacen el resto una vez que no les haya fallado nada
-
-1) Models: arranco a pasar la tabla del .sql que tenia antes a un Model dentro de `/src/db/models/`. Creo el archivo siguiendo los nombres dados, copio y pego lo de algun otro archivo para usarlo como base y edito los cambios necesarios para modelar mi tabla/entidad
-
-2) DTO: lo mismo copio, pego y edito segun lo que necesite
-
-3) Mappers: lo mismo copio, pego y edito (no solo codigo sino NOMBRES) lo que necesite. Requisitos: model y DTO
-
-4) Repositories: lo mismo copio, pego y edito (no solo codigo sino NOMBRES) lo que necesite. Requisitos: model
-
-5) Schema: lo mismo copio, pego y edito (no solo codigo sino NOMBRES) lo que necesite.
-
-6) Service: lo mismo copio, pego y edito (no solo codigo sino NOMBRES) lo que necesite. Requisitos: DTO y Repositories
-
-7) Router: lo mismo copio, pego y edito (no solo codigo sino NOMBRES) lo que necesite. Requisitos: Model, DTOs, Schema, Service
-
-8) Vamos a `app.py` y añadimos el router a la API
-
-9) Sigo los pasos de los comandos que hay en `/backend/README.md` para levantar la API
-
-10) Abrir `http://localhost:8000/docs` y probar la API
-
-
-
-## Documentacion
-
-Secciones que debe tener: 
-- el README.md del proyecto, 
-- la documentacion de la API (Swagger)
-- la documentacion de la base de datos (pgAdmin)
-
-1) Readme.md: debe contener pantallas/secciones del frontend y que se puede realizar en cada una, explicacion del diferencial y explicacion de algun algoritmo que hayan hecho (ejemplo recomendacion de peliculas, busqueda de productos, etc.) y como funciona. Con que realizaron el frontend. Que problemas tuvieron y como los resolvieron. Que aprendieron y que les gustaria aprender. Al final dejar quien hizo que y que se llevo de la materia.
-
-2) Documentacion de la API: debe contener todos los endpoints, que hacen, que parametros reciben y que devuelven. Esto lo hace automaticamente FastAPI con Swagger (http://localhost:8000/docs)
-
-3) Documentacion de la base de datos: debe contener todas las tablas, que columnas tienen, que relaciones tienen y que datos se pueden guardar en cada columna. Esto lo hace automaticamente pgAdmin (https://www.pgadmin.org/)
+- Las opiniones bloqueadas se filtran en el backend. Así, la pantalla y las consultas de la API aplican la misma regla antes de devolver las respuestas.
+- La vista previa de la foto se genera en el navegador para que puedas revisar el recorte antes de subir el archivo. El backend valida y procesa la imagen al guardarla.
+- Al eliminar el contenido de una publicación desde el panel de administración, se conservan sus comentarios. Así, las respuestas de otras cuentas siguen enlazadas al hilo.

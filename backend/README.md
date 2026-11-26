@@ -1,114 +1,100 @@
-# Initial Structure — FastAPI + SQLAlchemy + Pydantic
+# Backend de VoZero
 
-Estructura base de un proyecto en capas (routers, services, repositories, models, schemas, dtos, mappers, middlewares).
+El backend implementa la API del foro con FastAPI, valida datos con Pydantic, usa SQLAlchemy para manejar la persistencia y procesa imágenes con Pillow. PostgreSQL es la opción para trabajar con pgAdmin. SQLite permite probar el proyecto localmente con un archivo.
 
-## Importante: este repo es un TEMPLATE
+## Arranque manual
 
-**No clones este repo directamente ni intentes pushear.** El repo está protegido y solo el docente tiene permisos de escritura.
+Ejecutá estos comandos desde la raíz del repositorio en PowerShell.
 
-### Cómo trabajar con esta plantilla
-
-1. Entrá al repo en GitHub.
-2. Hacé click en el botón verde **"Use this template" → "Create a new repository"** (o, si no aparece, usá **"Fork"**).
-3. Creá el nuevo repo en **tu cuenta personal** de GitHub.
-4. Cloná **tu copia** (no la del docente):
-   ```bash
-   git clone https://github.com/<TU_USUARIO>/<TU_REPO>.git
-   cd <TU_REPO>
-   ```
-5. A partir de ahí trabajás libremente sobre tu propio repo.
-
-> Si intentás `git push` y te dice `permission denied`, es porque clonaste el repo del docente en lugar de tu fork/template. Volvé al paso 2.
-
----
-
-## Backend de VoZero
-
-En Windows, `INICIAR.bat` (en la raíz) levanta FastAPI y el frontend juntos. Para arrancar solo FastAPI desde `backend/`, instalá `requirements.txt` y corré `python -m src.main`. Sin un archivo `.env`, se crea una base local SQLite con datos iniciales. Para usar PostgreSQL, seguí la configuración de la sección siguiente y creá la base antes de iniciar el servidor.
-
-El frontend consulta `GET /api/foro/` y usa los endpoints de usuarios, comunidades, publicaciones, comentarios, votos y acciones del foro. Para leer o publicar contenido se necesita una sesión. Las cuentas usan contraseña y una cookie de sesión `HttpOnly` con un JWT firmado que vence a los siete días. La API comprueba la vigencia de la sesión en la base de datos y la revoca al cerrar sesión. En Swagger podés ingresar con `POST /api/usuario/sesion`. El navegador envía la cookie al probar las operaciones del foro.
-
-Las operaciones que cambian datos del foro requieren sesión. Las preguntas y respuestas anónimas siguen sin guardar el autor, pero requieren una cuenta para publicarse. Solo el autor puede borrar sus posts y comentarios, y solo el creador puede borrar su comunidad. Los moderadores pueden ocultar publicaciones y gestionar miembros según su rol.
-
-Configurá `VOZERO_JWT_SECRET` en `backend/.env` o en el entorno del servidor para conservar las sesiones entre reinicios y compartirlas entre procesos. Generá un valor privado con `python -c "from secrets import token_urlsafe; print(token_urlsafe(48))"`. Sin esa variable, el servidor usa una clave aleatoria que cambia al reiniciar. Las sesiones emitidas antes de pasar a JWT requieren iniciar sesión de nuevo.
-
-Las cuentas creadas antes de este cambio y las cuentas de ejemplo conservan sus datos. Para habilitar una de esas cuentas, iniciá la API una vez para actualizar el esquema y después ejecutá `python -m src.asignar_clave nombre_de_usuario` desde `backend/` con el mismo entorno que usa la API.
-
-En una base PostgreSQL vacía, podés cargar los datos de ejemplo con `src/db/tables.sql` y luego `src/db/inserts.sql` antes de iniciar la API. Las comunidades iniciales permiten participar y ganar karma con una cuenta nueva. En SQLite local se crean automáticamente.
-
-## Administración de VoZero
-
-Con la API iniciada y una cuenta registrada, asigná el administrador general desde `backend/` usando el mismo entorno de Python que la API.
-
-```bash
-python -m src.asignar_admin nombre_de_usuario
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m src.main
 ```
 
-Hay un solo administrador general. Desde **Administración → Subadmins** puede dar o retirar el rol de subadmin. Ambos roles pueden ocultar y mostrar publicaciones, y eliminar publicaciones, comentarios, preguntas anónimas y sus respuestas desde el panel del sitio.
+En macOS o Linux, usá `python3 -m venv .venv` y luego `./.venv/bin/python` en los comandos de instalación y arranque. Ejecutá los comandos desde `backend/` para mantener la base SQLite en esa carpeta. El servidor escucha en `127.0.0.1`. Con el puerto por defecto, podés abrir [Swagger](http://127.0.0.1:8000/docs) y consultar el [estado del servicio](http://127.0.0.1:8000/health).
 
-Cada nombramiento como subadmin suma 10 puntos de karma que quedan en la cuenta. El premio se suma al karma obtenido por votos.
+### Configuración y base de datos
 
-## Karma del foro
+| Variable de entorno | Comportamiento |
+| --- | --- |
+| `DATABASE_URL` | Por defecto usa `sqlite:///./punto-local.db`. Para PostgreSQL, creá una base vacía y completá la conexión en `.env` a partir de `.env.example`. |
+| `PORT` | Puerto HTTP. El valor por defecto es `8000`. |
+| `VOZERO_JWT_SECRET` | Clave privada para firmar sesiones. Configurá un valor estable para conservar las sesiones entre reinicios. Si falta, se genera una clave temporal al arrancar. |
+| `VOZERO_WEB_DELETE_SECRET` | Clave privada compartida con Next.js para operaciones internas de borrado y voto. Debe tener al menos 32 caracteres. `INICIAR.bat` la genera para ambos servicios. |
 
-El karma parte de cero y se calcula con los votos positivos de otras cuentas. Del nivel 1 al 15, el costo adicional es el número del nivel. Desde el 16, se multiplica el costo anterior por 1,25, se redondea hacia arriba y se limita a 1.000 votos adicionales por nivel. Llegar a 10 requiere 55 votos positivos. La API recalcula el karma guardado al arrancar y lo sincroniza con cada cambio de voto.
+Para generar una clave privada, podés ejecutar `python -c "from secrets import token_urlsafe; print(token_urlsafe(48))"`. Conservá los valores en archivos de entorno locales.
 
-`GET /api/usuarios/{id}/karma` devuelve el desglose de votos positivos y karma por tipo de contenido. El total aplica la escala a la suma de votos positivos en publicaciones y comentarios.
+Al arrancar, la aplicación crea las tablas faltantes, aplica ajustes compatibles al esquema existente y prepara las comunidades iniciales. La opción SQLite por defecto carga publicaciones de ejemplo al iniciar una base nueva. En PostgreSQL, podés aplicar [tables.sql](src/db/tables.sql) y luego [inserts.sql](src/db/inserts.sql) en una base vacía si querés cargar los ejemplos manualmente antes de arrancar.
 
-Con PostgreSQL, configurá `backend/.env` con tu `DATABASE_URL` y creá primero la base vacía en pgAdmin. FastAPI crea las tablas que falten y añade las columnas nuevas de publicaciones a las bases existentes. Aplicá `src/db/tables.sql` solo si querés crear las tablas manualmente en una base nueva.
+## Cómo procesa una solicitud
 
-## Setup
+1. `src/main.py` inicia Uvicorn. `src/app.py` registra los routers y ejecuta la preparación de la base.
+2. El router valida parámetros y cuerpo con los esquemas de `src/schemas/`. Cuando la ruta requiere sesión, obtiene el usuario autenticado.
+3. Los servicios de `src/services/` aplican las reglas de negocio. Usan los repositorios de `src/repositories/` o consultas SQLAlchemy para las operaciones que combinan varias relaciones.
+4. `src/db/connection.py` entrega una sesión de base por solicitud. `src/db/models/` define las entidades y relaciones.
+5. Los mappers convierten resultados a DTOs cuando corresponde. Los DTOs de `src/dtos/` definen la forma que esperan los consumidores de la API.
 
-```bash
-cd backend # Si no les deja deber ser porque es: cd .\backend\
-python -m venv venv
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-source venv/bin/activate          # Linux/Mac
-# venv\Scripts\Activate.ps1       # Windows
+## Datos y relaciones
 
-pip install -r requirements.txt
-cp .env.example .env               # editá con tus credenciales
+| Área | Tablas y relaciones |
+| --- | --- |
+| Cuentas y sesiones | `usuario` guarda el perfil, el hash de contraseña y el rol del sitio. `sesiones_usuario` guarda el hash del token, su vencimiento y el usuario asociado. |
+| Comunidades | `comunidad` referencia a su creador. `miembros_comunidad` une cada cuenta con una comunidad y guarda su rol. `ban` registra sanciones, su motivo y su vencimiento. |
+| Publicaciones y discusiones | `post` referencia a su autor y comunidad. `comentario` referencia al post y al autor y puede señalar un comentario padre. |
+| Votos y guardados | `votos_post` y `votos_comentario` relacionan votantes con el contenido. `posts_guardados` relaciona usuarios y publicaciones guardadas. |
+| Reportes y avisos | `reporte` y `reporte_comentario` registran los motivos por contenido. `notificacion_foro` guarda avisos de comentarios y `notificacion_reportes_post` los avisos por reportes. |
+| Espacio anónimo | `pregunta_anonima` guarda la consigna y su categoría. `respuesta_anonima` referencia a la pregunta. `acceso_pregunta_anonima` registra qué preguntas desbloqueó cada cuenta mediante un identificador derivado. |
+| Fotos | `foto_usuario` y `foto_comunidad` guardan la imagen procesada y una versión para servirla y actualizar su caché. |
 
-# Editar el .env en la parte de conexion con la base de datos. Tiene que quedarles algo asi:
+[Ver el esquema de PostgreSQL](src/db/tables.sql)
 
-# DATABASE_URL=postgresql://postgres:postgres@localhost:5432/{nombre de la base}
+## Reglas del foro
 
-uvicorn src.app:app --reload #uvicorn src.main:main --reload #uvicorn src.main:app --reload
+### Sesión y permisos
 
+El registro guarda un hash de contraseña. Al iniciar sesión, FastAPI emite una cookie `HttpOnly` con un JWT firmado que vence a los siete días. En cada solicitud protegida verifica la firma y que la sesión siga vigente en la base. Cerrar sesión revoca el token.
+
+Para probar la API en Swagger, iniciá sesión con `POST /api/usuario/sesion` desde el mismo host que estás usando para abrir Swagger. El navegador envía la cookie en las siguientes solicitudes. Algunas operaciones internas de borrado y voto se prueban desde el frontend, que agrega la clave del servidor web.
+
+### Comunidades, opiniones y karma
+
+Publicar y comentar requiere pertenecer a la comunidad. Para crear una comunidad se necesitan al menos 10 puntos de karma y el creador se convierte en moderador. Ese rol puede gestionar miembros y publicaciones de su comunidad. El rol del sitio se controla por separado.
+
+En las publicaciones con **Opiná primero**, la API filtra los comentarios hasta que la cuenta escribe su propia opinión. El autor de la publicación puede ver su conversación. En el espacio anónimo, las preguntas y respuestas requieren sesión, se presentan sin nombre de usuario y usan un identificador derivado para reconocer las propias y registrar el desbloqueo.
+
+El karma toma los votos positivos de otras cuentas sobre publicaciones y comentarios. El servicio acumula umbrales por nivel y usa una búsqueda binaria para determinar cuántos se alcanzaron. Una vez que el costo adicional llega a 1.000 votos, cada bloque de 1.000 suma un nivel. Los premios por nombramiento se agregan al resultado. El total se actualiza con los votos y se reconcilia al arrancar. [Código del algoritmo](src/services/karma_service.py)
+
+### Reportes, notificaciones y fotos
+
+Una cuenta puede reportar una publicación ajena una vez. Con cinco reportes de cuentas distintas, la API oculta la publicación y crea un aviso para el administrador general si hay uno asignado. Los reportes de comentarios se registran por separado. Un nuevo comentario avisa al autor del post y, cuando es una respuesta, también puede avisar al autor del comentario padre.
+
+La API valida que quien cambia una foto tenga permiso. Al guardar un JPG, PNG o WebP, verifica el tamaño, la resolución y el formato, corrige la orientación y recorta la imagen al centro. El resultado se guarda como WebP de 256 × 256 píxeles.
+
+## Rutas principales
+
+| Ruta | Operación |
+| --- | --- |
+| `POST /api/usuario/` y `POST /api/usuario/sesion` | Crear una cuenta e iniciar sesión. |
+| `GET /api/foro/` | Cargar los datos del foro visibles para la cuenta. |
+| `POST /api/comunidad/` y `PUT /api/foro/comunidades/{id}/miembros` | Crear comunidades y gestionar membresías. |
+| `POST /api/post/` y `POST /api/comentario/` | Publicar y comentar. |
+| `PUT /api/foro/posts/{id}` | Guardar, quitar de guardados, reportar y moderar una publicación según los permisos. |
+| `GET /api/usuarios/{id}/karma` | Consultar el total y el desglose de karma. |
+| `POST /api/foro/anonimo` y `POST /api/foro/anonimo/{id}/respuestas` | Crear preguntas y responder en el espacio anónimo. |
+| `GET /api/foro/notificaciones` y `PUT /api/foro/notificaciones` | Consultar avisos y marcarlos como leídos. |
+| `GET /api/admin/entradas` | Consultar el listado del panel de administración según el rol. |
+| `GET /api/fotos/{tipo}/{id}` y `PUT /api/fotos/{tipo}/{id}` | Descargar y guardar fotos de perfil o comunidad. |
+
+## Administración
+
+Registrá la cuenta desde el frontend. Con la base inicializada, ejecutá este comando desde `backend/` con el mismo entorno de Python que usa la API.
+
+```powershell
+.\.venv\Scripts\python.exe -m src.asignar_admin nombre_de_usuario
 ```
 
-Abrir http://localhost:8000/docs para ver Swagger.
+Hay un administrador general. Puede nombrar o quitar subadmins y gestionar cuentas. Cada nombramiento suma 10 puntos de karma que quedan en la cuenta. El administrador y los subadmins pueden moderar publicaciones, comentarios y contenido anónimo desde el panel. Al eliminar una publicación allí, el backend borra su contenido y conserva los comentarios para mantener el hilo. La herramienta `python -m src.asignar_clave nombre_de_usuario` permite habilitar una cuenta anterior o de ejemplo que requiere contraseña.
 
----
-
-## Estructura de carpetas
-
-```
-src/
-├── db/
-│   ├── connection.py
-│   ├── models/          # SQLAlchemy
-│   ├── migrations/      # Alembic
-│   └── seeders/
-├── schemas/             # Pydantic (validación HTTP)
-├── dtos/                # Pydantic (transporte entre capas)
-├── mappers/             # Model ⇄ DTO
-├── repositories/        # queries
-├── services/            # lógica de negocio
-├── routers/             # endpoints FastAPI
-├── middlewares/
-├── config/
-├── utils/
-├── app.py               # crea app FastAPI
-└── main.py              # entry point
-```
-
----
-
-## Reglas de la arquitectura
-
-1. `routers` no tocan la BD.
-2. `services` no tocan `Request` / `Response`.
-3. `repositories` no tienen lógica de negocio.
-4. `models` no salen del repository / service.
-5. `schemas` solo en routers.
-6. Al cliente siempre va un DTO, nunca un Model.
+[Volver al README principal](../README.md)

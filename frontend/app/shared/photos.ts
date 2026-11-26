@@ -14,28 +14,39 @@ export function photoEditor(target: PhotoTarget, id: string, hasPhoto: boolean) 
     </div>
     ${isProfile ? `<figure class="photo-preview" hidden>
       <figcaption>Vista previa</figcaption>
-      <img alt="Recorte de la foto de perfil seleccionada" width="112" height="112" />
+      <button type="button" class="profile-photo-button" data-action="open-profile-photo" aria-label="Ampliar vista previa" aria-haspopup="dialog" aria-controls="profile-photo-dialog">
+        <img alt="Recorte de la foto de perfil seleccionada" width="112" height="112" />
+      </button>
     </figure>` : ""}
     <div class="photo-actions">
       <button type="submit" class="btn btn-primary"${isProfile ? " disabled" : ""}>Guardar foto</button>
       ${hasPhoto ? '<button type="submit" class="btn btn-outline" value="remove" formnovalidate>Quitar foto</button>' : ""}
     </div>
-  </form>`;
+  </form>
+  ${isProfile ? `<dialog class="profile-photo-dialog photo-preview-dialog" id="profile-photo-dialog" aria-label="Vista previa ampliada">
+    <form method="dialog"><button type="submit" aria-label="Cerrar vista previa" autofocus>
+      <img class="profile-photo-large photo-preview-large" alt="Recorte de la foto de perfil seleccionada" />
+    </button></form>
+  </dialog>` : ""}`;
 }
 
 export function mountPhotoPreview(form: HTMLFormElement) {
   const input = form.querySelector<HTMLInputElement>("#photo-input");
   const preview = form.querySelector<HTMLElement>(".photo-preview");
   const image = preview?.querySelector("img");
+  const dialog = form.parentElement?.querySelector<HTMLDialogElement>("#profile-photo-dialog");
+  const enlarged = dialog?.querySelector("img");
   const save = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-  if (!input || !preview || !image || !save) return;
+  if (!input || !preview || !image || !dialog || !enlarged || !save) return;
 
   let previewUrl: string | undefined;
 
   const resetPreview = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = undefined;
+    dialog.close();
     image.removeAttribute("src");
+    enlarged.removeAttribute("src");
     preview.hidden = true;
     save.disabled = true;
   };
@@ -68,6 +79,7 @@ export function mountPhotoPreview(form: HTMLFormElement) {
       return;
     }
     if (previewUrl !== url) return;
+    enlarged.src = url;
     preview.hidden = false;
     save.disabled = false;
   };

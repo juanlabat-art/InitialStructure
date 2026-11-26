@@ -255,7 +255,10 @@
 .photo-editor input { min-width: 0; max-width: 100%; }
 .photo-preview { margin: 0 0 12px; }
 .photo-preview figcaption { margin-bottom: 6px; color: var(--ink-secondary); font-size: 12px; }
+.photo-preview .profile-photo-button { padding: 0; border-radius: 12px; }
 .photo-preview img { display: block; object-fit: cover; border: 1px solid var(--line); border-radius: 12px; }
+.photo-preview-dialog { max-width: none; max-height: none; }
+.photo-preview-large { aspect-ratio: 1; object-fit: cover; }
 .photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .photo-actions .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 .profile-stats small { display: block; }
