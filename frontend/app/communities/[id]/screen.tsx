@@ -25,7 +25,9 @@ export function communityDetail(
       db.posts.filter((p) => p.communityId === c.id),
     );
   return `${navigation}
-  <div class="community-cover"></div>
+  <div class="community-cover${c.bannerVersion ? " has-banner" : ""}">
+    ${c.bannerVersion ? `<img src="/api/fotos/banners/${encodeURIComponent(c.id)}?v=${encodeURIComponent(c.bannerVersion)}" alt="" />` : ""}
+  </div>
   <div class="community-profile">
     <div class="community-profile-top">
       ${cicon(c, 67, "community-profile-icon")}

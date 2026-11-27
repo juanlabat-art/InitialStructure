@@ -90,7 +90,6 @@ export function header(context: ScreenContext) {
     <div class="profile-menu" id="profile-menu" data-header-menu="profile"${ui.openMenu === "profile" ? "" : " hidden"}>
       <div class="menu-user"><strong>@${esc(u.username)}</strong><span>${siteRoleLabels[context.siteRole ?? "usuario"]} · ${totalKarma(u.id)} karma</span></div>
            <a class="menu-item" href="/myprofile/edit">${ico("edit", 16)} Editar perfil</a>
-           ${context.siteRole === "admin" || context.siteRole === "subadmin" ? `<button class="menu-item" data-action="navigate" data-view="admin">${ico("shield", 16)} Administración</button>` : ""}
            <button class="menu-item" data-action="logout">Cerrar sesión</button>
     </div>
     <section class="profile-menu notifications-menu" id="notifications-menu" aria-labelledby="notifications-title" data-header-menu="notifications"${ui.openMenu === "notifications" ? "" : " hidden"}>
@@ -126,6 +125,7 @@ export function sidebar(context: ScreenContext) {
     <div class="sidebar-content">
       <nav class="primary-nav" aria-label="Navegación principal">
         ${navItem(context, "home", "Inicio", "home")}${navItem(context, "communities", "Explorar", "compass")}${navItem(context, "users", "Usuarios", "users")}${navItem(context, "anonymous", "Anónimo", "mask")}${navItem(context, "saved", "Guardados", "bookmark")}${navItem(context, "profile", "Mi perfil", "user")}
+        ${context.siteRole === "admin" || context.siteRole === "subadmin" ? navItem(context, "admin", "Administración", "shield") : ""}
       </nav>
       <div class="sidebar-communities">
         <div class="side-rule"></div>

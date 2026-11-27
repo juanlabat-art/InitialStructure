@@ -168,7 +168,16 @@ export function mountPunto(
     const content = renderScreen(context);
     disposePhotoPreview?.();
     app.innerHTML = accountPage
-      ? `<main class="account-screen">${content}</main>`
+      ? `<main class="account-screen"><div class="account-layout">
+          <div class="account-brand">
+            <img src="/vozero-logo.jpg" alt="" width="100" height="100" />
+            <div>
+              <strong>${view === "register" ? "Bienvenido a VoZero" : "¡Bienvenido de nuevo!"}</strong>
+              <p>${view === "login" ? "VoZero · " : ""}Ideas sin eco</p>
+            </div>
+          </div>
+          ${content}
+        </div></main>`
       : `<div class="app-shell">
           ${sidebar(context)}
           <div class="app-workspace">${header(context)}<div class="layout"><main class="main">${content}</main>${rightbar(context)}</div></div>
@@ -940,11 +949,16 @@ export function mountPunto(
             )
               throw Error("Ese nombre de comunidad ya existe.");
             if (!description) throw Error("La descripción es obligatoria.");
+            const selectedBanner = vals.get("banner");
+            const banner = selectedBanner instanceof File && selectedBanner.name ? selectedBanner : undefined;
+            if (banner && banner.size > maxPhotoBytes)
+              throw Error("La foto del banner tiene que pesar como máximo 5 MB.");
             const community = await forumApi.createCommunity(
               me().id,
               name,
               description,
               !!field("nsfw"),
+              banner,
             );
             const cid = community.id;
             setView("community", { communityId: cid, tab: "posts" });

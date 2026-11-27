@@ -1,6 +1,9 @@
+from hashlib import sha256
+
 from sqlalchemy.orm import Session
 
 from src.db.models.comunidad_model import Comunidad
+from src.db.models.foto_model import banners_comunidad
 from src.db.models.foro_model import bans, memberships
 from src.dtos.comunidad_dto import CreateComunidadDTO, UpdateComunidadDTO
 
@@ -9,7 +12,7 @@ class ComunidadRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, dto: CreateComunidadDTO) -> Comunidad:
+    def create(self, dto: CreateComunidadDTO, banner: bytes | None = None) -> Comunidad:
         comunidad = Comunidad(
             nombre=dto.nombre,
             descripcion=dto.descripcion,
@@ -21,6 +24,10 @@ class ComunidadRepository:
         self.db.execute(memberships.insert().values(
             usuario_id=dto.creador_id, comunidad_id=comunidad.id, rol="moderador",
         ))
+        if banner is not None:
+            self.db.execute(banners_comunidad.insert().values(
+                id=comunidad.id, contenido=banner, version=sha256(banner).hexdigest(),
+            ))
         self.db.commit()
         self.db.refresh(comunidad)
         return comunidad

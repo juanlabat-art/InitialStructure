@@ -35,6 +35,12 @@ CREATE TABLE comunidad (
     fecha_creacion  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE banner_comunidad (
+    id INTEGER PRIMARY KEY REFERENCES comunidad(id) ON DELETE CASCADE,
+    version VARCHAR(64) NOT NULL,
+    contenido BYTEA NOT NULL
+);
+
 CREATE TABLE foto_comunidad (
     id INTEGER PRIMARY KEY REFERENCES comunidad(id) ON DELETE CASCADE,
     version VARCHAR(64) NOT NULL,

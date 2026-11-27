@@ -13,6 +13,7 @@ interface ApiUser {
   perfil_visible?: boolean;
 }
 interface ApiCommunity {
+  banner_version?: string | null;
   id: number;
   nombre: string;
   descripcion: string | null;
@@ -206,6 +207,7 @@ function community(row: ApiCommunity): Community {
     baseMembers: 0,
     bg: "var(--selected)",
     createdAt: date(row.fecha_creacion),
+    bannerVersion: row.banner_version ?? undefined,
     photoVersion: row.foto_version ?? undefined,
   };
 }
@@ -413,13 +415,21 @@ export const forumApi = {
     name: string,
     description: string,
     nsfw: boolean,
+    banner?: File,
   ) {
+    const encodedBanner = banner && await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(",")[1]);
+      reader.onerror = () => reject(new Error("No pudimos leer la foto del banner."));
+      reader.readAsDataURL(banner);
+    });
     return community(
       await mutation<ApiCommunity>("/comunidad", "POST", {
         creador_id: apiId(actor),
         nombre: name,
         descripcion: description,
         es_nsfw: nsfw,
+        banner: encodedBanner,
       }),
     );
   },

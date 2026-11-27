@@ -13,6 +13,7 @@ export interface User {
   profileVisible?: boolean;
 }
 export interface Community {
+  bannerVersion?: string;
   id: string;
   name: string;
   description: string;

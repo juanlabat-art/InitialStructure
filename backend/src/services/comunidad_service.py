@@ -1,3 +1,5 @@
+from base64 import b64decode
+
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -13,6 +15,7 @@ from src.mappers.comunidad_mapper import to_comunidad_response
 from src.repositories.comunidad_repository import ComunidadRepository
 from src.repositories.post_repository import PostRepository
 from src.repositories.usuario_repository import UsuarioRepository
+from src.services.foto_service import MAX_BYTES, preparar_imagen
 from src.services.foro_service import ForumService
 
 
@@ -22,7 +25,7 @@ class ComunidadService:
         self.repo = ComunidadRepository(db)
         self.usuarios = UsuarioRepository(db)
 
-    def create(self, dto: CreateComunidadDTO) -> ComunidadResponseDTO:
+    def create(self, dto: CreateComunidadDTO, banner: str | None = None) -> ComunidadResponseDTO:
         creator = self.usuarios.find_by_id(dto.creador_id)
         if creator is None:
             raise HTTPException(status_code=404, detail="El usuario creador no existe")
@@ -30,8 +33,18 @@ class ComunidadService:
         if creator.karma < 10:
             raise HTTPException(status_code=403, detail="Necesitás 10 de karma para crear una comunidad")
 
+        imagen = None
+        if banner is not None:
+            try:
+                contenido = b64decode(banner, validate=True)
+            except ValueError as error:
+                raise HTTPException(422, "La foto del banner no es válida") from error
+            if len(contenido) > MAX_BYTES:
+                raise HTTPException(413, "La foto tiene que pesar como máximo 5 MB")
+            imagen = preparar_imagen(contenido, banner=True)
+
         try:
-            comunidad = self.repo.create(dto)
+            comunidad = self.repo.create(dto, imagen)
         except IntegrityError as error:
             self.db.rollback()
             codigo = self._codigo_integridad(error)

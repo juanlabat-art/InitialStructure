@@ -1,9 +1,7 @@
-from io import BytesIO
-from typing import Literal
 from hashlib import sha256
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from PIL import Image, ImageOps
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -11,8 +9,9 @@ from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
 from src.db.models.comunidad_model import Comunidad
-from src.db.models.foto_model import fotos_comunidad, fotos_usuario
+from src.db.models.foto_model import banners_comunidad, fotos_comunidad, fotos_usuario
 from src.services.foro_service import ForumService
+from src.services.foto_service import MAX_BYTES, preparar_imagen
 from src.services.sesion_service import usuario_actual
 
 
@@ -20,9 +19,6 @@ router = APIRouter(prefix="/fotos", tags=["fotos"])
 TipoFoto = Literal["usuarios", "comunidades"]
 TABLAS = {"usuarios": fotos_usuario, "comunidades": fotos_comunidad}
 INSERTAR = {"sqlite": sqlite_insert, "postgresql": postgres_insert}
-MAX_BYTES = 5 * 1024 * 1024
-MAX_PIXELES = 32_000_000
-FORMATOS = ("JPEG", "PNG", "WEBP")
 
 
 def comprobar_editor(tipo: TipoFoto, titular_id: int, actor: int = Depends(usuario_actual),
@@ -46,26 +42,9 @@ async def leer_imagen(request: Request) -> bytes:
     return bytes(contenido)
 
 
-def preparar_imagen(contenido: bytes) -> bytes:
-    try:
-        with Image.open(BytesIO(contenido), formats=FORMATOS) as imagen:
-            if imagen.width * imagen.height > MAX_PIXELES:
-                raise HTTPException(422, "La foto supera los 32 megapíxeles")
-            if getattr(imagen, "is_animated", False):
-                raise HTTPException(422, "Elegí una foto sin animación")
-            orientada = ImageOps.exif_transpose(imagen).convert("RGBA")
-            miniatura = ImageOps.fit(orientada, (256, 256), Image.Resampling.LANCZOS)
-            miniatura.info.clear()
-            resultado = BytesIO()
-            miniatura.save(resultado, "WEBP", quality=85)
-            return resultado.getvalue()
-    except (Image.DecompressionBombError, OSError, ValueError) as error:
-        raise HTTPException(422, "Elegí una foto válida en formato JPG, PNG o WebP") from error
-
-
 @router.get("/{tipo}/{titular_id}", response_class=Response)
-def descargar_foto(tipo: TipoFoto, titular_id: int, request: Request, db: Session = Depends(get_db)):
-    tabla = TABLAS[tipo]
+def descargar_foto(tipo: Literal["usuarios", "comunidades", "banners"], titular_id: int, request: Request, db: Session = Depends(get_db)):
+    tabla = banners_comunidad if tipo == "banners" else TABLAS[tipo]
     fila = db.execute(select(tabla.c.version, tabla.c.contenido).where(tabla.c.id == titular_id)).one_or_none()
     if fila is None:
         raise HTTPException(404, "No hay una foto guardada")

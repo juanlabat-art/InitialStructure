@@ -2,7 +2,7 @@ from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, T
 from sqlalchemy.sql import func
 
 from src.db.connection import Base
-from src.db.models.foto_model import fotos_comunidad, version_foto
+from src.db.models.foto_model import banners_comunidad, fotos_comunidad, version_foto
 
 
 class Comunidad(Base):
@@ -10,6 +10,7 @@ class Comunidad(Base):
 
     id = Column(Integer, primary_key=True)
     foto_version = version_foto(fotos_comunidad, id)
+    banner_version = version_foto(banners_comunidad, id)
     nombre = Column(String(21), nullable=False, unique=True)
     descripcion = Column(Text, nullable=True)
     creador_id = Column(Integer, ForeignKey("usuario.id"), nullable=False)

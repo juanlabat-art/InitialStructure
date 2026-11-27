@@ -23,3 +23,4 @@ class ComunidadResponseDTO(BaseModel):
     es_nsfw: bool
     fecha_creacion: FechaUTC
     foto_version: str | None = None
+    banner_version: str | None = None

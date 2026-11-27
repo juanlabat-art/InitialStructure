@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from src.services.foto_service import MAX_BYTES
+
 
 class UpdateComunidadSchema(BaseModel):
     nombre: str = Field(min_length=3, max_length=21, pattern=r"^\S+$")
@@ -9,3 +11,4 @@ class UpdateComunidadSchema(BaseModel):
 
 class CreateComunidadSchema(UpdateComunidadSchema):
     creador_id: int = Field(gt=0)
+    banner: str | None = Field(default=None, max_length=4 * ((MAX_BYTES + 2) // 3))

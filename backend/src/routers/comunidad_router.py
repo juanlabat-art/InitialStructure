@@ -19,8 +19,8 @@ router = APIRouter(prefix="/comunidad", tags=["comunidades"])
 @router.post("/", response_model=ComunidadResponseDTO, status_code=status.HTTP_201_CREATED)
 def create_comunidad(payload: CreateComunidadSchema, db: Session = Depends(get_db), actor=Depends(usuario_actual)):
     verificar_actor(actor, payload.creador_id)
-    dto = CreateComunidadDTO(**payload.model_dump())
-    return ComunidadService(db).create(dto)
+    dto = CreateComunidadDTO(**payload.model_dump(exclude={"banner"}))
+    return ComunidadService(db).create(dto, payload.banner)
 
 
 @router.get("/", response_model=list[ComunidadResponseDTO])
