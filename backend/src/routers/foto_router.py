@@ -16,8 +16,8 @@ from src.services.sesion_service import usuario_actual
 
 
 router = APIRouter(prefix="/fotos", tags=["fotos"])
-TipoFoto = Literal["usuarios", "comunidades"]
-TABLAS = {"usuarios": fotos_usuario, "comunidades": fotos_comunidad}
+TipoFoto = Literal["usuarios", "comunidades", "banners"]
+TABLAS = {"usuarios": fotos_usuario, "comunidades": fotos_comunidad, "banners": banners_comunidad}
 INSERTAR = {"sqlite": sqlite_insert, "postgresql": postgres_insert}
 
 
@@ -43,8 +43,8 @@ async def leer_imagen(request: Request) -> bytes:
 
 
 @router.get("/{tipo}/{titular_id}", response_class=Response)
-def descargar_foto(tipo: Literal["usuarios", "comunidades", "banners"], titular_id: int, request: Request, db: Session = Depends(get_db)):
-    tabla = banners_comunidad if tipo == "banners" else TABLAS[tipo]
+def descargar_foto(tipo: TipoFoto, titular_id: int, request: Request, db: Session = Depends(get_db)):
+    tabla = TABLAS[tipo]
     fila = db.execute(select(tabla.c.version, tabla.c.contenido).where(tabla.c.id == titular_id)).one_or_none()
     if fila is None:
         raise HTTPException(404, "No hay una foto guardada")
@@ -63,7 +63,7 @@ def descargar_foto(tipo: Literal["usuarios", "comunidades", "banners"], titular_
 )
 def guardar_foto(tipo: TipoFoto, titular_id: int, contenido: bytes = Depends(leer_imagen),
                 db: Session = Depends(get_db)):
-    imagen = preparar_imagen(contenido)
+    imagen = preparar_imagen(contenido, banner=tipo == "banners")
     tabla = TABLAS[tipo]
     version = sha256(imagen).hexdigest()
     insert = INSERTAR[db.bind.dialect.name](tabla).values(id=titular_id, contenido=imagen, version=version)

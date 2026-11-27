@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from src.db.connection import SessionLocal
 from src.db.models.usuario_model import Usuario
+from src.services.karma_service import KARMA_ADMIN
 
 
 def main():
@@ -24,6 +25,7 @@ def main():
             if admin is not None and admin != usuario.id:
                 parser.error("El sitio ya tiene un administrador general")
             usuario.rol_sitio = "admin"
+            usuario.karma = KARMA_ADMIN
     except IntegrityError:
         parser.error("El sitio ya tiene un administrador general")
     print("Administrador general asignado.")

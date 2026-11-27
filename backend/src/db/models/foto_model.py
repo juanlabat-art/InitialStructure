@@ -26,5 +26,13 @@ banners_comunidad = Table(
 )
 
 
+fotos_post = Table(
+    "foto_post", Base.metadata,
+    Column("id", Integer, ForeignKey("post.id", ondelete="CASCADE"), primary_key=True),
+    Column("version", String(64), nullable=False),
+    Column("contenido", LargeBinary, nullable=False),
+)
+
+
 def version_foto(tabla, titular):
     return column_property(select(tabla.c.version).where(tabla.c.id == titular).scalar_subquery())

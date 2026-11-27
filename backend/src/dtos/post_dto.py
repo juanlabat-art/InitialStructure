@@ -30,3 +30,4 @@ class PostResponseDTO(BaseModel):
     eliminado: bool = False
     es_pregunta: bool
     opinar_primero: bool
+    foto_version: str | None = None

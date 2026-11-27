@@ -4,12 +4,13 @@ from src.utils.fechas import FechaUTC
 
 
 class UpdateComunidadDTO(BaseModel):
+    descripcion: str | None
+
+
+class CreateComunidadDTO(BaseModel):
     nombre: str
     descripcion: str | None = None
     es_nsfw: bool = False
-
-
-class CreateComunidadDTO(UpdateComunidadDTO):
     creador_id: int
 
 

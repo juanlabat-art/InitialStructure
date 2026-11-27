@@ -3,7 +3,6 @@ import PuntoScreen from "../../punto-screen";
 import { backToHome, pinButton } from "../../shared/chrome";
 import type { ScreenContext } from "../../shared/state";
 import { noContent, sortPosts, filters, postCard } from "../../shared/posts";
-import { photoEditor } from "../../shared/photos";
 import { cicon, esc, ico, count } from "../../shared/presentation";
 
 export function communityDetail(
@@ -45,10 +44,9 @@ export function communityDetail(
     </div>
     <p class="community-profile-desc">${esc(c.description)}</p>
     <div class="community-tools"><span>${ico("calendar", 14)} Creada en ${new Date(c.createdAt).toLocaleDateString("es-AR", { month: "short", year: "numeric" })}</span>${isMod(c.id) ? '<span class="tag green">Sos moderador/a</span>' : ""}${me().id && c.creatorId === me().id ? `<button type="button" class="btn btn-sm btn-danger" data-action="delete-community" data-id="${c.id}">Eliminar comunidad</button>` : ""}${c.nsfw ? '<span class="tag orange">NSFW</span>' : ""}</div>
-    ${isMod(c.id) ? `<details class="profile-editor">
-      <summary class="btn btn-sm btn-outline">${ico("edit", 15)} Editar foto</summary>
-      ${photoEditor("comunidades", c.id, Boolean(c.photoVersion))}
-    </details>` : ""}
+    ${isMod(c.id) ? `<div class="profile-editor">
+      <a class="btn btn-sm btn-outline" href="/communities/${encodeURIComponent(c.id)}/edit">${ico("edit", 15)} Editar comunidad</a>
+    </div>` : ""}
   </div>
   <div class="page-head"><div class="community-tabs">${[["posts", "Publicaciones"], ["top", "Top usuarios"], ...(isMod(c.id) ? [["mod", "Moderación"]] : [])].map(([key, label]) => `<button class="btn btn-sm ${ui.tab === key ? "btn-primary" : "btn-light"}" data-action="community-tab" data-value="${key}">${label}</button>`).join("")}</div></div>
   ${ui.tab === "posts" ? `<div class="page-head community-post-actions">

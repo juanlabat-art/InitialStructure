@@ -39,9 +39,7 @@ class ComunidadRepository:
         return self.db.query(Comunidad).order_by(Comunidad.id).all()
 
     def update(self, comunidad: Comunidad, dto: UpdateComunidadDTO) -> Comunidad:
-        comunidad.nombre = dto.nombre
         comunidad.descripcion = dto.descripcion
-        comunidad.es_nsfw = dto.es_nsfw
         self.db.commit()
         self.db.refresh(comunidad)
         return comunidad

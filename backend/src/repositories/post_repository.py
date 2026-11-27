@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+from hashlib import sha256
 
 from fastapi import HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from src.db.models.comentario_model import Comentario
+from src.db.models.foto_model import fotos_post
 from src.db.models.foro_model import comment_votes, reports, saved
 from src.db.models.post_model import Post
 from src.db.models.usuario_model import Usuario
@@ -17,7 +19,7 @@ class PostRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, dto: CreatePostDTO) -> Post:
+    def create(self, dto: CreatePostDTO, foto: bytes | None = None) -> Post:
         post = Post(
             comunidad_id=dto.comunidad_id,
             autor_id=dto.autor_id,
@@ -28,6 +30,11 @@ class PostRepository:
             opinar_primero=dto.es_pregunta and dto.opinar_primero,
         )
         self.db.add(post)
+        if foto is not None:
+            self.db.flush()
+            self.db.execute(fotos_post.insert().values(
+                id=post.id, version=sha256(foto).hexdigest(), contenido=foto,
+            ))
         self.db.commit()
         self.db.refresh(post)
         return post
@@ -68,6 +75,7 @@ class PostRepository:
         post.es_pregunta = False
         post.opinar_primero = False
         post.fecha_edicion = None
+        self.db.execute(delete(fotos_post).where(fotos_post.c.id == post.id))
         for table in (VotoPost.__table__, saved):
             self.db.execute(delete(table).where(table.c.post_id == post.id))
         autor = self.db.get(Usuario, post.autor_id, with_for_update=True)

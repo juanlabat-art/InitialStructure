@@ -5,12 +5,15 @@ export const maxPhotoBytes = 5 * 1024 * 1024;
 
 export function photoEditor(target: PhotoTarget, id: string, hasPhoto: boolean) {
   const isProfile = target === "usuarios";
-  const label = isProfile ? "Foto de perfil" : "Foto de la comunidad";
+  const isBanner = target === "banners";
+  const label = isBanner ? "Foto del banner" : isProfile ? "Foto de perfil" : "Foto de la comunidad";
+  const inputId = isBanner ? "banner-input" : "photo-input";
+  const helpId = isBanner ? "banner-help" : "photo-help";
   return `<form class="photo-editor" data-form="photo" data-target="${target}" data-id="${esc(id)}">
     <div class="form-field">
-      <label for="photo-input">${label}</label>
-      <input id="photo-input" name="photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-help" required />
-      <p class="form-help" id="photo-help">JPG, PNG o WebP de hasta 5 MB. Se recorta al centro en formato cuadrado.</p>
+      <label for="${inputId}">${label}</label>
+      <input id="${inputId}" name="photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="${helpId}" required />
+      <p class="form-help" id="${helpId}">JPG, PNG o WebP de hasta 5 MB. ${isBanner ? "Las fotos horizontales se adaptan mejor al banner." : "Se recorta al centro en formato cuadrado."}</p>
     </div>
     ${isProfile ? `<figure class="photo-preview" hidden>
       <figcaption>Vista previa</figcaption>
@@ -19,8 +22,8 @@ export function photoEditor(target: PhotoTarget, id: string, hasPhoto: boolean) 
       </button>
     </figure>` : ""}
     <div class="photo-actions">
-      <button type="submit" class="btn btn-primary"${isProfile ? " disabled" : ""}>Guardar foto</button>
-      ${hasPhoto ? '<button type="submit" class="btn btn-outline" value="remove" formnovalidate>Quitar foto</button>' : ""}
+      <button type="submit" class="btn btn-primary"${isProfile ? " disabled" : ""}>${isBanner ? "Guardar banner" : "Guardar foto"}</button>
+      ${hasPhoto ? `<button type="submit" class="btn btn-outline" value="remove" formnovalidate>${isBanner ? "Quitar banner" : "Quitar foto"}</button>` : ""}
     </div>
   </form>
   ${isProfile ? `<dialog class="profile-photo-dialog photo-preview-dialog" id="profile-photo-dialog" aria-label="Vista previa ampliada">

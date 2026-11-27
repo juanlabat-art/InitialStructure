@@ -10,6 +10,7 @@ from src.db.models.usuario_model import Usuario
 from src.db.models.voto_post_model import VotoPost
 
 
+KARMA_ADMIN = 10
 _COSTO_MAXIMO = 1000
 _COSTOS = list(range(1, 16))
 while _COSTOS[-1] < _COSTO_MAXIMO:
@@ -49,6 +50,9 @@ def desglose_votos(db, usuario_id):
 
 
 def actualizar_karma(db, autor):
+    if autor.rol_sitio == "admin":
+        autor.karma = KARMA_ADMIN
+        return
     posts, comentarios = desglose_votos(db, autor.id)
     autor.karma = karma_por_votos(posts + comentarios) + Usuario.karma_por_nombramientos
 
@@ -58,5 +62,8 @@ def reconciliar_karma(db):
     posts = dict(db.execute(votos_positivos_por_autor(Post, VotoPost.__table__, VotoPost.post_id)).all())
     comentarios = dict(db.execute(votos_positivos_por_autor(Comentario, comment_votes, comment_votes.c.comentario_id)).all())
     for usuario in usuarios:
+        if usuario.rol_sitio == "admin":
+            usuario.karma = KARMA_ADMIN
+            continue
         votos = posts.get(usuario.id, 0) + comentarios.get(usuario.id, 0)
         usuario.karma = karma_por_votos(votos) + Usuario.karma_por_nombramientos

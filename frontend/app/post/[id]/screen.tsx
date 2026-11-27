@@ -1,7 +1,7 @@
 "use client";
 import PuntoScreen from "../../punto-screen";
 import type { ScreenContext } from "../../shared/state";
-import { noContent, postActions, postDate, reportPostButton, savePostButton } from "../../shared/posts";
+import { noContent, postActions, postDate, postImage, reportPostButton, savePostButton } from "../../shared/posts";
 import { esc, relativeTime, editedMark, ico, cicon, userProfileLink } from "../../shared/presentation";
 
 function commentsTree(
@@ -94,6 +94,7 @@ function postDetail(context: ScreenContext) {
       : `${p.deleted ? '<article class="card detail-card"><h1 class="deleted-content">Publicación eliminada</h1></article>' : `<article class="card detail-card">
     <div class="post-topline">${cicon(c)}<button class="comm" data-action="open-community" data-id="${c.id}">${esc(c.name)}</button><span class="dot">·</span>${userProfileLink(author)}<span class="dot">·</span>${postDate(p)}${postActions(context, p)}</div>
     <h1>${esc(p.title)}</h1><p class="post-content">${esc(p.content)}</p>
+    ${postImage(p)}
     <div class="post-tags">${p.isQuestion ? `<span class="tag">${ico("message", 12)} Pregunta</span>` : ""}${locked ? `<span class="tag orange">${ico("lock", 12)} Opiná primero</span>` : ""}${p.hidden ? '<span class="tag orange">Oculto por moderación</span>' : ""}</div>
     ${locked ? `<div class="question-mode">${ico("lock", 17)} Primero respondé. Después vas a poder leer las respuestas de los demás.</div>` : ""}
     <div class="detail-toolbar"><button class="footer-pill ${vote("post", p.id) === 1 ? "on" : ""}" data-action="vote-post" data-id="${p.id}" data-value="1">${ico("arrowUp", 16)} ${postPoints(p)}</button><button class="footer-pill" data-action="vote-post" data-id="${p.id}" data-value="-1">${ico("arrowDown", 16)}</button>${savePostButton(context, p)}${reportPostButton(context, p, true)}${isMod(c.id) ? `<button class="footer-pill" data-action="toggle-hide" data-id="${p.id}">${ico(p.hidden ? "eye" : "eyeOff", 16)} ${p.hidden ? "Mostrar" : "Ocultar"}</button>` : ""}</div>

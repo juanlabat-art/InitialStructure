@@ -44,6 +44,7 @@ interface ApiPost {
   eliminado?: boolean;
   es_pregunta: boolean;
   opinar_primero: boolean;
+  foto_version?: string | null;
 }
 interface ApiComment {
   id: number;
@@ -153,6 +154,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.status === 204 ? (undefined as T) : response.json();
 }
 
+function encodeImage(image: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = () => reject(new Error("No pudimos leer la imagen."));
+    reader.readAsDataURL(image);
+  });
+}
+
 function mutation<T>(path: string, method: string, body?: object, signal?: AbortSignal) {
   return request<T>(path, {
     method,
@@ -221,6 +231,7 @@ function post(row: ApiPost): Post {
     authorId: String(row.autor_id),
     title: row.titulo,
     content: row.contenido ?? "",
+    photoVersion: row.foto_version ?? undefined,
     createdAt: date(row.fecha),
     editedAt: row.fecha_edicion ? date(row.fecha_edicion) : undefined,
     hidden: row.oculto,
@@ -366,6 +377,9 @@ export const forumApi = {
   updateProfile(description: string) {
     return mutation<ApiUser>("/usuario/perfil", "PUT", { descripcion: description });
   },
+  updateCommunity(id: string, description: string) {
+    return mutation<ApiCommunity>("/comunidad/" + apiId(id), "PUT", { descripcion: description });
+  },
   savePhoto(target: PhotoTarget, id: string, photo: File) {
     return request<void>(`/fotos/${target}/${apiId(id)}`, {
       method: "PUT",
@@ -419,12 +433,7 @@ export const forumApi = {
     nsfw: boolean,
     banner?: File,
   ) {
-    const encodedBanner = banner && await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(",")[1]);
-      reader.onerror = () => reject(new Error("No pudimos leer la foto del banner."));
-      reader.readAsDataURL(banner);
-    });
+    const encodedBanner = banner && await encodeImage(banner);
     return community(
       await mutation<ApiCommunity>("/comunidad", "POST", {
         creador_id: apiId(actor),
@@ -443,6 +452,7 @@ export const forumApi = {
     isQuestion: boolean,
     blindMode: boolean,
     requestId: string,
+    image?: File,
   ) {
     return post(
       await mutation<ApiPost>("/post", "POST", {
@@ -453,6 +463,7 @@ export const forumApi = {
         es_pregunta: isQuestion,
         opinar_primero: blindMode,
         solicitud_id: requestId,
+        imagen: image && await encodeImage(image),
       }),
     );
   },

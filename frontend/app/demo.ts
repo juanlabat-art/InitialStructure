@@ -518,6 +518,15 @@ export function mountPunto(
         ui.composerType = el.dataset.value ?? "post";
         render();
         break;
+      case "clear-post-image": {
+        const input = app.querySelector<HTMLInputElement>("#post-image");
+        if (input) {
+          input.value = "";
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          input.focus();
+        }
+        break;
+      }
       case "compose-anon":
         setView(me().id ? "newAnonymous" : "login");
         break;
@@ -817,7 +826,17 @@ export function mountPunto(
     "change",
     (event) => {
       const toggle = event.target;
-      if (!(toggle instanceof HTMLInputElement) || !toggle.matches("[data-theme-toggle]")) return;
+      if (!(toggle instanceof HTMLInputElement)) return;
+      if (toggle.id === "post-image" && toggle.form) {
+        postRequests.delete(toggle.form);
+        const file = toggle.files?.[0];
+        const filename = toggle.form.querySelector("[data-post-image-name]");
+        const clear = toggle.form.querySelector<HTMLButtonElement>('[data-action="clear-post-image"]');
+        if (filename) filename.textContent = file?.name ?? "";
+        if (clear) clear.hidden = !file;
+        return;
+      }
+      if (!toggle.matches("[data-theme-toggle]")) return;
       const theme = toggle.checked ? "dark" : "light";
       document.documentElement.dataset.theme = theme;
       try {
@@ -861,6 +880,10 @@ export function mountPunto(
               throw Error("No tenés permiso para publicar en esta comunidad.");
             const isQuestion = ui.composerType === "question";
             const blindMode = Boolean(field("blindMode"));
+            const selectedImage = vals.get("image");
+            const image = selectedImage instanceof File && selectedImage.name ? selectedImage : undefined;
+            if (image && (!image.size || image.size > maxPhotoBytes))
+              throw Error("Elegí una imagen válida de hasta 5 MB.");
             const submitted = JSON.stringify([cid, title, content, isQuestion, blindMode]);
             const previous = postRequests.get(form);
             const requestId = previous?.content === submitted ? previous.id : crypto.randomUUID();
@@ -873,6 +896,7 @@ export function mountPunto(
               isQuestion,
               blindMode,
               requestId,
+              image,
             );
             setView("postDetail", { postId: p.id });
             toast("Publicación creada.");
@@ -1007,11 +1031,20 @@ export function mountPunto(
             render();
             toast("Perfil actualizado.");
             break;
+          case "community-description":
+            if (!form.dataset.id) return;
+            await forumApi.updateCommunity(form.dataset.id, trim("description", 400));
+            await connect(listeners.signal);
+            render();
+            toast("Descripción actualizada.");
+            break;
           case "photo": {
             const { target, id } = form.dataset;
-            if (!id || (target !== "usuarios" && target !== "comunidades")) return;
+            if (!id || (target !== "usuarios" && target !== "comunidades" && target !== "banners")) return;
             if (removePhoto) {
-              if (!await ask("Quitar foto", "<p>Se mostrará el ícono predeterminado.</p>", "Quitar foto", true)) return;
+              const label = target === "banners" ? "Quitar banner" : "Quitar foto";
+              const fallback = target === "banners" ? "fondo" : "ícono";
+              if (!await ask(label, `<p>Se mostrará el ${fallback} predeterminado.</p>`, label, true)) return;
               await forumApi.removePhoto(target, id);
             } else {
               const photo = vals.get("photo");
@@ -1021,7 +1054,7 @@ export function mountPunto(
             }
             await connect(listeners.signal);
             render();
-            toast(removePhoto ? "Foto quitada." : "Foto guardada.");
+            toast(target === "banners" ? (removePhoto ? "Banner quitado." : "Banner guardado.") : (removePhoto ? "Foto quitada." : "Foto guardada."));
             break;
           }
           case "report": {

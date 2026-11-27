@@ -33,6 +33,13 @@ function composerModal(context: ScreenContext) {
         : `<form data-form="post"><div class="form-field"><label for="post-community">Comunidad</label><select id="post-community" name="communityId" required>${joined.map((m) => `<option value="${m.communityId}" ${m.communityId === current ? "selected" : ""}>${esc(comm(m.communityId)?.name ?? m.communityId)}</option>`).join("")}</select></div>
     <div class="form-field"><label for="post-title">Título *</label><input id="post-title" name="title" maxlength="300" minlength="1" required placeholder="Elegí un título que despierte curiosidad"/><p class="form-help">Hasta 300 caracteres.</p></div><div class="form-field"><label for="post-content">Contenido</label><textarea id="post-content" name="content" maxlength="10000" placeholder="Contá qué querés compartir..."></textarea></div>
     ${ui.composerType === "question" ? `<label class="switch-field"><input type="checkbox" name="blindMode"/><span>${ico("lock", 17)} &nbsp;<b style="display:inline">Activar “Opiná primero”</b><small>Los demás no podrán ver ninguna respuesta hasta que escriban la propia. Así evitás influenciar sus opiniones.</small></span></label>` : ""}
+    <div class="form-field post-media-field">
+      <input class="post-media-input" id="post-image" name="image" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="post-image-help" />
+      <label class="btn btn-outline" for="post-image">Subir archivo multimedia (opcional)</label>
+      <p class="form-help" id="post-image-help">Una imagen JPG, PNG o WebP de hasta 5 MB.</p>
+      <span data-post-image-name aria-live="polite"></span>
+      <button type="button" class="btn btn-sm btn-outline" data-action="clear-post-image" hidden>Quitar archivo</button>
+    </div>
     <div class="modal-footer"><button type="button" class="btn btn-outline" data-action="close-modal">Cancelar</button><button class="btn btn-primary" type="submit">${ico("plus", 15)} Publicar</button></div></form>`
     }`,
   );

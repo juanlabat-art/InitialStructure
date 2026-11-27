@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field, UUID4, field_validator
 
+from src.services.foto_service import MAX_BYTES
+
 
 class UpdatePostSchema(BaseModel):
     titulo: str = Field(min_length=1, max_length=300)
@@ -19,3 +21,4 @@ class CreatePostSchema(UpdatePostSchema):
     comunidad_id: int = Field(gt=0)
     autor_id: int = Field(gt=0)
     solicitud_id: UUID4 | None = None
+    imagen: str | None = Field(default=None, max_length=4 * ((MAX_BYTES + 2) // 3))

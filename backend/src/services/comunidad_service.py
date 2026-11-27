@@ -67,15 +67,7 @@ class ComunidadService:
         if ForumService(self.db).role(comunidad.id, actor) != "moderador":
             raise HTTPException(403, "No tenés permiso para realizar esta acción")
 
-        try:
-            comunidad = self.repo.update(comunidad, dto)
-        except IntegrityError as error:
-            self.db.rollback()
-            if self._codigo_integridad(error) in {"23505", "SQLITE_CONSTRAINT_UNIQUE"}:
-                raise HTTPException(status_code=409, detail="Ese nombre ya está en uso") from error
-            raise
-
-        return to_comunidad_response(comunidad)
+        return to_comunidad_response(self.repo.update(comunidad, dto))
 
     def delete(self, comunidad_id: int, actor: int) -> None:
         comunidad = self.db.get(Comunidad, comunidad_id, with_for_update=True)

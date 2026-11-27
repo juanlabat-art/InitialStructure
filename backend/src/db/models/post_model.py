@@ -2,6 +2,7 @@ from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, St
 from sqlalchemy.sql import func
 
 from src.db.connection import Base
+from src.db.models.foto_model import fotos_post, version_foto
 
 
 class Post(Base):
@@ -9,6 +10,7 @@ class Post(Base):
     __table_args__ = (Index("uq_post_autor_solicitud", "autor_id", "solicitud_id", unique=True),)
 
     id = Column(Integer, primary_key=True)
+    foto_version = version_foto(fotos_post, id)
     comunidad_id = Column(Integer, ForeignKey("comunidad.id"), nullable=False)
     autor_id = Column(Integer, ForeignKey("usuario.id"), nullable=False)
     solicitud_id = Column(String(36), nullable=True)

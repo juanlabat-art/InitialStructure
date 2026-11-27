@@ -63,6 +63,12 @@ CREATE TABLE post (
     opinar_primero BOOLEAN     NOT NULL DEFAULT FALSE
 );
 CREATE UNIQUE INDEX uq_post_autor_solicitud ON post (autor_id, solicitud_id);
+
+CREATE TABLE foto_post (
+    id        INTEGER PRIMARY KEY REFERENCES post(id) ON DELETE CASCADE,
+    version   VARCHAR(64) NOT NULL,
+    contenido BYTEA NOT NULL
+);
  
 CREATE TABLE comentario (
     id                   SERIAL PRIMARY KEY,

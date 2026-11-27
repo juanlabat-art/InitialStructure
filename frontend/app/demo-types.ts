@@ -26,7 +26,7 @@ export interface Community {
   photoVersion?: string;
 }
 
-export type PhotoTarget = "usuarios" | "comunidades";
+export type PhotoTarget = "usuarios" | "comunidades" | "banners";
 export interface Question {
   id: string;
   title: string;
@@ -39,6 +39,7 @@ export interface AnonymousQuestion extends Question {
   mine?: boolean;
 }
 export interface Post extends Question {
+  photoVersion?: string;
   editedAt?: string;
   deleted?: boolean;
   communityId: string;

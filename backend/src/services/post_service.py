@@ -1,3 +1,5 @@
+from base64 import b64decode
+
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -9,6 +11,7 @@ from src.repositories.comunidad_repository import ComunidadRepository
 from src.repositories.post_repository import PostRepository
 from src.repositories.usuario_repository import UsuarioRepository
 from src.services.foro_service import ForumService
+from src.services.foto_service import MAX_BYTES, preparar_imagen
 
 
 class PostService:
@@ -18,7 +21,7 @@ class PostService:
         self.usuarios = UsuarioRepository(db)
         self.comunidades = ComunidadRepository(db)
 
-    def create(self, dto: CreatePostDTO) -> PostResponseDTO:
+    def create(self, dto: CreatePostDTO, imagen: str | None = None) -> PostResponseDTO:
         existing = self.repo.find_by_request(dto)
         if existing is not None:
             return to_post_response(existing)
@@ -30,8 +33,18 @@ class PostService:
             raise HTTPException(status_code=404, detail="La comunidad no existe")
 
         ForumService(self.db).require_member(dto.comunidad_id, dto.autor_id)
+        foto = None
+        if imagen is not None:
+            try:
+                contenido = b64decode(imagen, validate=True)
+            except ValueError as error:
+                raise HTTPException(422, "La imagen no es válida") from error
+            if len(contenido) > MAX_BYTES:
+                raise HTTPException(413, "La imagen tiene que pesar como máximo 5 MB")
+            foto = preparar_imagen(contenido, banner=True)
+
         try:
-            post = self.repo.create(dto)
+            post = self.repo.create(dto, foto)
         except IntegrityError as error:
             self.db.rollback()
             existing = self.repo.find_by_request(dto)
