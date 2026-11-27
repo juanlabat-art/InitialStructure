@@ -3,7 +3,7 @@ import PuntoScreen from "../punto-screen";
 import type { ScreenContext } from "../shared/state";
 import { postCard, noContent, sortPosts } from "../shared/posts";
 import { profileActions } from "../shared/chrome";
-import { av, esc, ico, karmaProgress, photoUrl, siteRoleLabels } from "../shared/presentation";
+import { av, displayKarma, esc, ico, karmaProgress, photoUrl, siteRoleLabels } from "../shared/presentation";
 
 function profile(context: ScreenContext) {
   const { me, db, ui, karma, votesToNextKarma } = context;
@@ -33,14 +33,14 @@ function profile(context: ScreenContext) {
    </div>
    ${u.description ? `<p class="profile-description">${esc(u.description)}</p>` : ""}
    <div class="profile-stats">
-     <div><b>${u.karmaBase}</b><small>Karma total</small>
+     <div><b>${displayKarma(u.karmaBase, u.siteRole)}</b><small>Karma total</small>
        ${own && karma ? `<small>${karma.votos_positivos_posts} votos positivos en publicaciones · ${karma.votos_positivos_comentarios} en comentarios</small>` : ""}
-       ${own && karma?.karma_por_nombramientos ? `<small>${karma.karma_por_nombramientos} puntos de karma por nombramientos</small>` : ""}
+       ${own && u.siteRole !== "admin" && karma?.karma_por_nombramientos ? `<small>${karma.karma_por_nombramientos} puntos de karma por nombramientos</small>` : ""}
      </div>
      <div><b>${posts.length}</b><small>Publicaciones</small></div>
      <div><b>${joined.length}</b><small>Comunidades</small></div>
    </div>
-   ${own ? karmaProgress(votesToNextKarma) : ""}
+   ${own ? karmaProgress(votesToNextKarma, u.siteRole) : ""}
    </div>
    ${photo ? `<dialog class="profile-photo-dialog" id="profile-photo-dialog" aria-label="${esc(photoLabel)}">
      <form method="dialog"><button type="submit" aria-label="Cerrar foto" autofocus>

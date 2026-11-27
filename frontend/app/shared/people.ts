@@ -1,5 +1,5 @@
 import type { User } from "../demo-types";
-import { esc, userProfileLink } from "./presentation";
+import { av, displayKarma, esc, relativeTime, userProfileHref } from "./presentation";
 
 export function matchUsers(users: User[], query: string) {
   const term = query.trim().toLowerCase().replace(/^(?:@|u\/)/, "");
@@ -8,10 +8,15 @@ export function matchUsers(users: User[], query: string) {
     .sort((a, b) => Number(b.username === term) - Number(a.username === term) || a.username.localeCompare(b.username, "es-AR"));
 }
 
-export function userList(users: User[]) {
+export function userList(users: User[], { showLastConnection = false } = {}) {
   return `<ul class="card user-list">${users.map((user) => `<li>
-    ${userProfileLink(user, { avatar: true })}
-    <small>${esc(user.karmaBase)} karma</small>
+    <a class="user-list-row" href="${userProfileHref(user.username)}">
+      <span class="user-list-name">${av(user, "small")}<span>${esc(user.username)}</span></span>
+      <span class="user-list-details">
+        <small>${displayKarma(user.karmaBase, user.siteRole)} karma</small>
+        ${showLastConnection ? `<small>Última conexión: ${user.lastConnectedAt ? relativeTime(user.lastConnectedAt) : "Sin registro"}</small>` : ""}
+      </span>
+    </a>
   </li>`).join("")}</ul>`;
 }
 

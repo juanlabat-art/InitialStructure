@@ -7,7 +7,7 @@ import { esc } from "../shared/presentation";
 import { noContent } from "../shared/posts";
 import type { ScreenContext } from "../shared/state";
 
-const pageSize = 24;
+const pageSize = 10;
 
 function users(context: ScreenContext, query: string, requestedPage: number) {
   const matches = matchUsers(context.db.users, query);
@@ -20,9 +20,10 @@ function users(context: ScreenContext, query: string, requestedPage: number) {
       <div><input class="search-input" id="user-search" name="q" type="search" maxlength="100" value="${esc(query)}" />
       <button class="btn btn-primary" type="submit">Buscar</button></div>
     </form>
-    ${list.length ? userList(list) : noContent("No encontramos usuarios", "Probá con otro nombre de usuario.", "search")}
-    ${pages > 1 ? `<nav class="admin-pagination" aria-label="Páginas de usuarios">
+    ${list.length ? userList(list, { showLastConnection: true }) : noContent("No encontramos usuarios", "Probá con otro nombre de usuario.", "search")}
+    ${pages > 1 ? `<nav class="user-pagination" aria-label="Páginas de usuarios">
       ${page > 1 ? `<a class="btn btn-sm btn-outline" href="${esc(userDirectoryHref(query, page - 1))}">Anterior</a>` : ""}
+      <span>Página ${page} de ${pages}</span>
       ${page < pages ? `<a class="btn btn-sm btn-outline" href="${esc(userDirectoryHref(query, page + 1))}">Siguiente</a>` : ""}
     </nav>` : ""}`;
 }

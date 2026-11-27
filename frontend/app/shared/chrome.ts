@@ -1,5 +1,5 @@
 import type { ScreenContext } from "./state";
-import { ico, esc, av, cicon, count, relativeTime, karmaProgress, siteRoleLabels } from "./presentation";
+import { ico, esc, av, cicon, count, relativeTime, displayKarma, karmaProgress, siteRoleLabels } from "./presentation";
 import { sessionTimer } from "./session-timer";
 
 export const MAX_PINNED_COMMUNITIES = 3;
@@ -23,7 +23,7 @@ function navItem(
 }
 
 function brandButton() {
-  return '<button class="logo" data-action="navigate" data-view="home" aria-label="VoZero"><img class="logo-symbol" src="/vozero-logo.jpg" alt="" width="38" height="38" /><span class="logo-text">VoZero</span></button>';
+  return '<button class="logo" data-action="navigate" data-view="home" aria-label="VoZero"><img class="logo-symbol" src="/vozero-symbol-mint-97ead2.png" alt="" width="703" height="610" /><span class="logo-text">VoZero</span></button>';
 }
 
 export function isPinned(context: ScreenContext, communityId: string) {
@@ -70,7 +70,7 @@ export function notificationsContent(context: ScreenContext) {
 }
 
 export function header(context: ScreenContext) {
-  const { me, ui, totalKarma } = context;
+  const { me, ui } = context;
   const u = me();
   return `<header class="topbar">
     <div class="topbar-start">
@@ -88,8 +88,13 @@ export function header(context: ScreenContext) {
     </button>
     </div>
     <div class="profile-menu" id="profile-menu" data-header-menu="profile"${ui.openMenu === "profile" ? "" : " hidden"}>
-      <div class="menu-user"><strong>@${esc(u.username)}</strong><span>${siteRoleLabels[context.siteRole ?? "usuario"]} · ${totalKarma(u.id)} karma</span></div>
+      <div class="menu-user"><strong>@${esc(u.username)}</strong><span>${siteRoleLabels[context.siteRole ?? "usuario"]} · ${displayKarma(u.karmaBase, u.siteRole)} karma</span></div>
            <a class="menu-item" href="/myprofile/edit">${ico("edit", 16)} Editar perfil</a>
+           <label class="menu-item theme-toggle">
+             <span>Modo oscuro</span>
+             <input type="checkbox" role="switch" data-theme-toggle />
+             <span class="theme-toggle-track" aria-hidden="true"></span>
+           </label>
            <button class="menu-item" data-action="logout">Cerrar sesión</button>
     </div>
     <section class="profile-menu notifications-menu" id="notifications-menu" aria-labelledby="notifications-title" data-header-menu="notifications"${ui.openMenu === "notifications" ? "" : " hidden"}>
@@ -141,7 +146,7 @@ export function sidebar(context: ScreenContext) {
 }
 
 export function rightbar(context: ScreenContext) {
-  const { me, db, ui, memberCount, membership, totalKarma, votesToNextKarma } = context;
+  const { me, db, ui, memberCount, membership, votesToNextKarma } = context;
   const u = me(),
     memberships = db.memberships.filter((m) => m.userId === u.id);
   const currentCommunityId = isCommunityView(ui.view) ? ui.communityId : undefined;
@@ -176,8 +181,8 @@ export function rightbar(context: ScreenContext) {
     ${u.id ? `<div class="card rightcard">
       <div class="right-head" style="margin-bottom:15px"><h3>Tu impacto</h3>${ico("award", 19)}</div>
       <div class="right-userbox">${av(u)}<div><b>@${esc(u.username)}</b><small>Seguí compartiendo ideas</small></div></div>
-      <div class="stats-grid"><div><div class="stat-number">${totalKarma(u.id)}</div><div class="stat-label">Karma total</div></div><div><div class="stat-number">${memberships.length}</div><div class="stat-label">Comunidades</div></div></div>
-      ${karmaProgress(votesToNextKarma)}
+      <div class="stats-grid"><div><div class="stat-number">${displayKarma(u.karmaBase, u.siteRole)}</div><div class="stat-label">Karma total</div></div><div><div class="stat-number">${memberships.length}</div><div class="stat-label">Comunidades</div></div></div>
+      ${karmaProgress(votesToNextKarma, u.siteRole)}
     </div>` : ""}
   </aside>`;
 }

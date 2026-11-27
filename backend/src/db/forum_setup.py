@@ -61,6 +61,9 @@ def setup_forum_database() -> None:
             db.execute(text("ALTER TABLE usuario ADD COLUMN clave_anonima VARCHAR(32)"))
         if "descripcion" not in user_columns:
             db.execute(text("ALTER TABLE usuario ADD COLUMN descripcion VARCHAR(300)"))
+        if "ultima_conexion" not in user_columns:
+            column_type = Usuario.__table__.c.ultima_conexion.type.compile(dialect=db.dialect)
+            db.execute(text(f"ALTER TABLE usuario ADD COLUMN ultima_conexion {column_type}"))
         if "karma_por_nombramientos" not in user_columns:
             db.execute(text(
                 "ALTER TABLE usuario ADD COLUMN karma_por_nombramientos INTEGER NOT NULL DEFAULT 0 "

@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import case, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from src.db.models.comentario_model import Comentario
@@ -14,6 +14,7 @@ from src.services.usuario_service import UsuarioService
 
 
 _POR_PAGINA = 20
+_USUARIOS_POR_PAGINA = 10
 _KARMA_POR_NOMBRAMIENTO = 10
 
 
@@ -72,10 +73,11 @@ class AdminService:
 
         if busqueda.strip():
             consulta = consulta.where(func.lower(texto).contains(busqueda.strip().lower(), autoescape=True))
+        por_pagina = _USUARIOS_POR_PAGINA if seccion in {"subadmins", "usuarios"} else _POR_PAGINA
         filas = self.db.execute(
-            consulta.offset((pagina - 1) * _POR_PAGINA).limit(_POR_PAGINA + 1),
+            consulta.offset((pagina - 1) * por_pagina).limit(por_pagina + 1),
         ).mappings().all()
-        return {"entradas": filas[:_POR_PAGINA], "siguiente": len(filas) > _POR_PAGINA}
+        return {"entradas": filas[:por_pagina], "siguiente": len(filas) > por_pagina}
 
     def eliminar_usuario(self, actor: int, usuario_id: int) -> None:
         self._verificar_rol(actor, solo_admin=True)
@@ -101,7 +103,19 @@ class AdminService:
                 ),
             )
         else:
-            usuario.rol_sitio = rol
+            bono_a_retirar = case(
+                (Usuario.karma_por_nombramientos >= _KARMA_POR_NOMBRAMIENTO, _KARMA_POR_NOMBRAMIENTO),
+                else_=Usuario.karma_por_nombramientos,
+            )
+            self.db.execute(
+                update(Usuario)
+                .where(Usuario.id == usuario_id, Usuario.rol_sitio == "subadmin")
+                .values(
+                    rol_sitio="usuario",
+                    karma_por_nombramientos=Usuario.karma_por_nombramientos - bono_a_retirar,
+                    karma=Usuario.karma - bono_a_retirar,
+                ),
+            )
         self.db.commit()
 
     def cambiar_visibilidad(self, actor: int, post_id: int, oculto: bool) -> None:

@@ -54,7 +54,7 @@ function renderAdmin(context: ScreenContext) {
     ).join("")}</nav>
     ${!sections.includes(section)
       ? '<p class="notice">Esta sección es exclusiva del administrador general.</p>'
-      : `${section === "subadmins" ? '<p class="form-help">Cada nombramiento suma 10 puntos de karma a la cuenta.</p>' : ""}
+      : `${section === "subadmins" ? '<p class="form-help">Nombrar a un subadmin le suma 10 puntos de karma. Quitarle el rol revierte ese bono.</p>' : ""}
       <form class="admin-search" action="/admin" method="get">
         <input type="hidden" name="seccion" value="${section}" />
         <input class="search-input" name="q" maxlength="100" value="${esc(query)}" aria-label="${userSearch ? "Buscar por nombre de usuario" : "Buscar contenido"}" placeholder="${userSearch ? "Nombre de usuario" : "Buscar contenido"}" />

@@ -6,6 +6,7 @@ export interface User {
   email: string;
   karmaBase: number;
   joinedAt: string;
+  lastConnectedAt?: string;
   color: string;
   description?: string;
   siteRole?: SiteRole;

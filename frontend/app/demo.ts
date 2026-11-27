@@ -1,3 +1,4 @@
+import { THEME_STORAGE_KEY } from "./shared/theme";
 import type { AdminSelection, HeaderMenu, Post, ViewState } from "./demo-types";
 import { hasUnreadNotifications, header, notificationsContent, sidebar, rightbar, MAX_PINNED_COMMUNITIES } from "./shared/chrome";
 import { dateLabel, esc, ico } from "./shared/presentation";
@@ -172,7 +173,7 @@ export function mountPunto(
           <div class="account-brand">
             <p class="account-greeting">${view === "login" ? "¡Bienvenido de nuevo!" : "Bienvenido a VoZero"}</p>
             <div class="account-wordmark">
-              <img src="/vozero-logo.jpg" alt="" width="136" height="136" />
+              <img src="/vozero-logo-mint-97ead2.png" alt="" width="136" height="136" />
               <strong>VoZero</strong>
             </div>
             <p class="account-slogan">Ideas sin eco</p>
@@ -186,7 +187,11 @@ export function mountPunto(
         </div>`;
     const photoForm = app.querySelector<HTMLFormElement>('.photo-editor[data-target="usuarios"]');
     disposePhotoPreview = photoForm ? mountPhotoPreview(photoForm) : undefined;
-    if (!accountPage) updateSidebar();
+    if (!accountPage) {
+      updateSidebar();
+      const themeToggle = app.querySelector<HTMLInputElement>("[data-theme-toggle]");
+      if (themeToggle) themeToggle.checked = document.documentElement.dataset.theme === "dark";
+    }
     if (app.querySelector(".route-form")) {
       app
         .querySelector<HTMLElement>(
@@ -804,6 +809,21 @@ export function mountPunto(
           return;
         }
         setView("search");
+      }
+    },
+    { signal: listeners.signal },
+  );
+  app.addEventListener(
+    "change",
+    (event) => {
+      const toggle = event.target;
+      if (!(toggle instanceof HTMLInputElement) || !toggle.matches("[data-theme-toggle]")) return;
+      const theme = toggle.checked ? "dark" : "light";
+      document.documentElement.dataset.theme = theme;
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+      } catch {
+        // The current page still uses the selected theme.
       }
     },
     { signal: listeners.signal },

@@ -5,17 +5,19 @@ from secrets import token_bytes, token_urlsafe
 
 import jwt
 from fastapi import Cookie, Depends, HTTPException, Request, Response
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.orm import Session
 
 from src.config.env import settings
 from src.db.connection import get_db
 from src.db.models.usuario_model import Usuario, sesiones
 from src.services.foro_service import utc_now
+from src.utils.fechas import fecha_utc
 
 
 COOKIE = "punto_cuenta"
 DURACION = timedelta(days=7)
+INTERVALO_CONEXION = timedelta(minutes=1)
 ALGORITMO = "HS256"
 EMISOR = "vozero"
 AUDIENCIA = "vozero-sesion"
@@ -61,10 +63,22 @@ def iniciar_sesion(db: Session, usuario: Usuario, request: Request, response: Re
     db.execute(insert(sesiones).values(
         token_hash=_hash_token(token), usuario_id=usuario.id, vence=vence.replace(tzinfo=None),
     ))
+    _registrar_conexion(db, usuario.id, ahora, ahora)
     db.commit()
     response.set_cookie(
         COOKIE, token, max_age=int(DURACION.total_seconds()), httponly=True,
         secure=request.url.scheme == "https", samesite="lax",
+    )
+
+
+def _registrar_conexion(db: Session, usuario_id: int, ahora: datetime, limite: datetime) -> None:
+    db.execute(
+        update(Usuario).where(
+            Usuario.id == usuario_id,
+            Usuario.clave_hash.is_not(None),
+            or_(Usuario.ultima_conexion.is_(None), Usuario.ultima_conexion < limite),
+        ).values(ultima_conexion=ahora)
+        .execution_options(synchronize_session=False)
     )
 
 
@@ -103,12 +117,23 @@ def sesion_actual(token: str | None = Depends(token_sesion), db: Session = Depen
     except (jwt.InvalidTokenError, ValueError):
         return None
 
-    return db.scalar(select(sesiones.c.usuario_id).join(Usuario, Usuario.id == sesiones.c.usuario_id).where(
-        sesiones.c.token_hash == _hash_token(token),
-        sesiones.c.usuario_id == usuario_id,
-        sesiones.c.vence > utc_now(),
-        Usuario.clave_hash.is_not(None),
-    ))
+    sesion = db.execute(
+        select(Usuario.ultima_conexion).join(sesiones, Usuario.id == sesiones.c.usuario_id).where(
+            sesiones.c.token_hash == _hash_token(token),
+            sesiones.c.usuario_id == usuario_id,
+            sesiones.c.vence > utc_now(),
+            Usuario.clave_hash.is_not(None),
+        )
+    ).one_or_none()
+    if sesion is None:
+        return None
+
+    ahora = datetime.now(timezone.utc)
+    limite = ahora - INTERVALO_CONEXION
+    if sesion.ultima_conexion is None or fecha_utc(sesion.ultima_conexion) < limite:
+        _registrar_conexion(db, usuario_id, ahora, limite)
+        db.commit()
+    return usuario_id
 
 
 def usuario_actual(usuario_id: int | None = Depends(sesion_actual)) -> int:

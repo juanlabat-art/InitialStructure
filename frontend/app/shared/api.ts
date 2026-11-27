@@ -7,6 +7,7 @@ interface ApiUser {
   email?: string;
   karma: number;
   fecha_registro: string;
+  ultima_conexion?: string | null;
   descripcion?: string | null;
   rol_sitio?: SiteRole;
   foto_version?: string | null;
@@ -189,6 +190,7 @@ function user(row: ApiUser): User {
     email: row.email ?? "",
     karmaBase: row.karma,
     joinedAt: date(row.fecha_registro),
+    lastConnectedAt: row.ultima_conexion ? date(row.ultima_conexion) : undefined,
     color: "mint",
     description: row.descripcion ?? "",
     siteRole: row.rol_sitio ?? "usuario",

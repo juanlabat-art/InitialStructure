@@ -6,8 +6,12 @@ export const siteRoleLabels: Record<SiteRole, string> = {
   admin: "Administrador general",
 };
 
-export function karmaProgress(votes: number | null) {
-  if (votes === null) return "";
+export function displayKarma(karma: number, role?: SiteRole) {
+  return role === "admin" ? "∞" : String(karma);
+}
+
+export function karmaProgress(votes: number | null, role?: SiteRole) {
+  if (votes === null || role === "admin") return "";
   const remaining = votes === 1 ? "Te falta <strong>1 voto positivo</strong>" : `Te faltan <strong>${votes} votos positivos</strong>`;
   return `<p class="karma-progress">${remaining} para el próximo punto de karma.</p>`;
 }
@@ -129,6 +133,10 @@ function photo(target: PhotoTarget, entity?: User | Community) {
 export const av = (u: User | undefined, size = "") =>
   `<span class="avatar photo-slot ${esc(u?.color || "")} ${size}" title="${esc(u?.username || "usuario")}">${photo("usuarios", u) || esc(initials(u?.username || "u"))}</span>`;
 
+export function userProfileHref(username: string) {
+  return `/users/${encodeURIComponent(username)}`;
+}
+
 export function userProfileLink(
   user: User | undefined,
   { avatar, prefix }: { avatar?: boolean; prefix?: string } = {},
@@ -136,7 +144,7 @@ export function userProfileLink(
   const name = esc(user?.username || "Usuario eliminado");
   const label = `${avatar ? av(user, "small") : ""}<span>${esc(prefix)}${name}</span>`;
   return user?.profileVisible
-    ? `<a class="user-profile-link" href="/users/${encodeURIComponent(user.username)}">${label}</a>`
+    ? `<a class="user-profile-link" href="${userProfileHref(user.username)}">${label}</a>`
     : `<span class="user-profile-link">${label}</span>`;
 }
 

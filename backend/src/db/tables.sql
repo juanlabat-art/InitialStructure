@@ -15,7 +15,8 @@ CREATE TABLE usuario (
                     CHECK (rol_sitio IN ('usuario', 'subadmin', 'admin')),
     karma           INTEGER      NOT NULL DEFAULT 0,
     karma_por_nombramientos INTEGER NOT NULL DEFAULT 0 CHECK (karma_por_nombramientos >= 0),
-    fecha_registro  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    fecha_registro  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ultima_conexion TIMESTAMP WITH TIME ZONE
 );
 
 CREATE UNIQUE INDEX uq_usuario_admin_sitio ON usuario (rol_sitio) WHERE rol_sitio = 'admin';

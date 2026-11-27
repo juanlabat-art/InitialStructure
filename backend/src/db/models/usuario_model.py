@@ -23,6 +23,7 @@ class Usuario(Base):
     descripcion = Column(String(300), nullable=True)
     rol_sitio = Column(String(12), nullable=False, server_default="usuario")
     fecha_registro = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    ultima_conexion = Column(DateTime(timezone=True), nullable=True)
 
     @property
     def perfil_visible(self) -> bool:

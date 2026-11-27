@@ -19,6 +19,7 @@ class UsuarioForoDTO(BaseModel):
     username: str
     karma: int
     fecha_registro: FechaUTC
+    ultima_conexion: FechaUTC | None = None
     descripcion: str | None = None
     foto_version: str | None = None
     perfil_visible: bool = False
