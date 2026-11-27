@@ -484,18 +484,20 @@ a.user-profile-link { color: var(--brand); text-decoration: underline; text-unde
   padding: clamp(14px, 4vw, 36px);
 }
 .account-layout {
-  width: min(100%, 850px);
+  width: min(100%, 1080px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
   align-items: center;
   gap: clamp(24px, 5vw, 64px);
 }
-.account-brand { display: flex; align-items: center; gap: 18px; }
-.account-brand img { width: clamp(64px, 9vw, 100px); height: auto; border-radius: 18px; }
-.account-brand strong { font-size: clamp(25px, 3vw, 36px); line-height: 1.1; }
-.account-brand p { color: var(--ink-secondary); margin-top: 5px; }
+.account-brand { display: grid; justify-items: center; gap: 14px; text-align: center; }
+.account-greeting { font-size: clamp(26px, 4vw, 46px); font-weight: 800; line-height: 1.15; }
+.account-wordmark { display: flex; align-items: center; justify-content: center; gap: clamp(12px, 2vw, 20px); }
+.account-wordmark img { width: clamp(88px, 12vw, 136px); height: auto; border-radius: 18px; }
+.account-wordmark strong { font-size: clamp(50px, 7vw, 86px); line-height: 1; }
+.account-slogan { color: var(--ink-secondary); font-size: 18px; }
 .account-screen .route-form { max-width: 460px; }
-@media (max-width: 700px) {
+@media (max-width: 800px) {
   .account-layout { max-width: 460px; grid-template-columns: minmax(0, 1fr); }
 }
 .community-cover.has-banner::after { content: none; }

@@ -170,11 +170,12 @@ export function mountPunto(
     app.innerHTML = accountPage
       ? `<main class="account-screen"><div class="account-layout">
           <div class="account-brand">
-            <img src="/vozero-logo.jpg" alt="" width="100" height="100" />
-            <div>
-              <strong>${view === "register" ? "Bienvenido a VoZero" : "¡Bienvenido de nuevo!"}</strong>
-              <p>${view === "login" ? "VoZero · " : ""}Ideas sin eco</p>
+            <p class="account-greeting">${view === "login" ? "¡Bienvenido de nuevo!" : "Bienvenido a VoZero"}</p>
+            <div class="account-wordmark">
+              <img src="/vozero-logo.jpg" alt="" width="136" height="136" />
+              <strong>VoZero</strong>
             </div>
+            <p class="account-slogan">Ideas sin eco</p>
           </div>
           ${content}
         </div></main>`
