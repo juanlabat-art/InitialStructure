@@ -64,6 +64,7 @@ CREATE TABLE comentario (
     comentario_padre_id  INTEGER   REFERENCES comentario(id),  -- NULL = comentario raíz
     texto                TEXT      NOT NULL,
     fecha                TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_edicion        TIMESTAMP WITH TIME ZONE,                -- NULL = nunca se editó
     eliminado            BOOLEAN   NOT NULL DEFAULT FALSE
 );
 
@@ -121,6 +122,7 @@ CREATE TABLE miembros_comunidad (
     comunidad_id  INTEGER     NOT NULL REFERENCES comunidad(id),
     rol           VARCHAR(10) NOT NULL DEFAULT 'miembro',   -- 'miembro' o 'moderador'
     fecha_union   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fijada        BOOLEAN     NOT NULL DEFAULT FALSE,       -- hasta 3 por usuario
     PRIMARY KEY (usuario_id, comunidad_id)
 );
  

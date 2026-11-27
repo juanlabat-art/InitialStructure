@@ -1,6 +1,7 @@
 import type { AdminSelection, HeaderMenu, Post, ViewState } from "./demo-types";
-import { hasUnreadNotifications, header, notificationsContent, sidebar, rightbar } from "./shared/chrome";
-import { dateLabel, esc } from "./shared/presentation";
+import { hasUnreadNotifications, header, notificationsContent, sidebar, rightbar, MAX_PINNED_COMMUNITIES } from "./shared/chrome";
+import { dateLabel, esc, ico } from "./shared/presentation";
+import { clearSessionTimer, updateSessionTimers } from "./shared/session-timer";
 import { ApiError, forumApi } from "./shared/api";
 import { isAnonymousCategory } from "./shared/anonymous-categories";
 import { reportReasons } from "./shared/reports";
@@ -8,20 +9,6 @@ import { maxPhotoBytes, mountPhotoPreview } from "./shared/photos";
 import { clearBrowserSession, createScreenContext, rememberUnlockedConversation, showWelcomeForNewAccount, type ScreenRenderer } from "./shared/state";
 
 const SIDEBAR_STORAGE = "vozero_sidebar_collapsed";
-const SIDEBAR_WIDTH_STORAGE = "vozero_sidebar_width";
-const COLLAPSED_SIDEBAR_WIDTH = 68;
-const MIN_SIDEBAR_WIDTH = 184;
-const MAX_SIDEBAR_WIDTH = 250;
-const SIDEBAR_SNAP_WIDTH = (COLLAPSED_SIDEBAR_WIDTH + MIN_SIDEBAR_WIDTH) / 2;
-
-interface SidebarResize {
-  pointerId: number;
-  handle: HTMLElement;
-  startX: number;
-  startWidth: number;
-  width: number;
-}
-
 function viewHref(view: ViewState["view"], state: ViewState): string {
   switch (view) {
     case "home":
@@ -98,15 +85,9 @@ export function mountPunto(
   const accountPage = view === "login" || view === "register";
   const mobileViewport = window.matchMedia("(max-width: 870px)");
   let desktopSidebarCollapsed = false;
-  let desktopSidebarWidth: number | null = null;
   let mobileSidebarOpen = false;
-  let sidebarResize: SidebarResize | null = null;
   try {
     desktopSidebarCollapsed = localStorage.getItem(SIDEBAR_STORAGE) === "true";
-    const width = Number(localStorage.getItem(SIDEBAR_WIDTH_STORAGE));
-    if (Number.isFinite(width) && width >= MIN_SIDEBAR_WIDTH) {
-      desktopSidebarWidth = Math.min(width, MAX_SIDEBAR_WIDTH);
-    }
   } catch {
     // The menu can still be toggled when storage is unavailable.
   }
@@ -186,7 +167,6 @@ export function mountPunto(
     const active = document.activeElement;
     const content = renderScreen(context);
     disposePhotoPreview?.();
-    sidebarResize = null;
     app.innerHTML = accountPage
       ? `<main class="account-screen">${content}</main>`
       : `<div class="app-shell">
@@ -213,12 +193,9 @@ export function mountPunto(
   function updateSidebar() {
     const shell = app.querySelector<HTMLElement>(".app-shell");
     if (!shell) return;
-    const collapsed = sidebarResize ? sidebarResize.width < MIN_SIDEBAR_WIDTH : desktopSidebarCollapsed;
-    shell.toggleAttribute("data-sidebar-collapsed", collapsed);
+    const collapsed = desktopSidebarCollapsed && !mobileViewport.matches;
+    shell.toggleAttribute("data-sidebar-collapsed", desktopSidebarCollapsed);
     shell.toggleAttribute("data-sidebar-open", mobileSidebarOpen);
-    shell.toggleAttribute("data-sidebar-resizing", Boolean(sidebarResize));
-    shell.style.setProperty("--sidebar-width", desktopSidebarWidth === null ? "" : `${desktopSidebarWidth}px`);
-    shell.style.setProperty("--sidebar-drag-width", sidebarResize ? `${sidebarResize.width}px` : "");
     const workspace = shell.querySelector<HTMLElement>(".app-workspace");
     if (workspace) workspace.inert = mobileSidebarOpen;
     const sidebar = shell.querySelector<HTMLElement>("#site-sidebar");
@@ -233,39 +210,27 @@ export function mountPunto(
     const trigger = shell.querySelector(".sidebar-toggle");
     trigger?.setAttribute("aria-expanded", String(mobileSidebarOpen));
 
-    const handle = sidebar?.querySelector(".sidebar-resize");
-    if (handle && !mobileViewport.matches) {
-      const expandedWidth = desktopSidebarWidth ?? sidebar?.offsetWidth ?? MIN_SIDEBAR_WIDTH;
-      const width = sidebarResize?.width ??
-        (collapsed ? COLLAPSED_SIDEBAR_WIDTH : expandedWidth);
-      handle.setAttribute("aria-valuemin", String(COLLAPSED_SIDEBAR_WIDTH));
-      handle.setAttribute("aria-valuemax", String(MAX_SIDEBAR_WIDTH));
-      handle.setAttribute("aria-valuenow", String(width));
-      handle.setAttribute("aria-valuetext", collapsed && !sidebarResize ? "Menú retraído" : `${width} píxeles`);
+    const collapseButton = shell.querySelector<HTMLElement>(".sidebar-collapse");
+    if (collapseButton) {
+      const label = collapsed ? "Expandir menú lateral" : "Contraer menú lateral";
+      collapseButton.setAttribute("aria-expanded", String(!collapsed));
+      collapseButton.setAttribute("aria-label", label);
+      collapseButton.title = label;
     }
   }
-  function setDesktopSidebar(collapsed: boolean, width = desktopSidebarWidth) {
+  function setDesktopSidebar(collapsed: boolean) {
     desktopSidebarCollapsed = collapsed;
-    desktopSidebarWidth = width;
     updateSidebar();
     try {
       localStorage.setItem(SIDEBAR_STORAGE, String(collapsed));
-      if (width !== null) localStorage.setItem(SIDEBAR_WIDTH_STORAGE, String(width));
     } catch {
       // The current screen retains the menu state without storage.
     }
   }
-  function cancelSidebarResize() {
-    if (!sidebarResize) return;
-    const { handle, pointerId } = sidebarResize;
-    sidebarResize = null;
-    if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
-    updateSidebar();
-  }
   function setMobileSidebar(open: boolean) {
     mobileSidebarOpen = open;
     updateSidebar();
-    const focusTarget = open ? ".sidebar-close" : mobileViewport.matches ? ".sidebar-toggle" : ".sidebar-resize";
+    const focusTarget = open ? ".sidebar-close" : ".sidebar-toggle";
     app.querySelector<HTMLElement>(focusTarget)?.focus();
   }
   function setHeaderMenu(menu: HeaderMenu | null) {
@@ -386,6 +351,36 @@ export function mountPunto(
       case "open-community":
         setView("community", { communityId: itemId, tab: "posts" });
         break;
+      case "toggle-password": {
+        const input = app.querySelector<HTMLInputElement>("#" + CSS.escape(el.dataset.target ?? ""));
+        if (!input) return;
+        const show = input.type === "password";
+        const label = show ? "Ocultar contraseña" : "Mostrar contraseña";
+        input.type = show ? "text" : "password";
+        el.setAttribute("aria-pressed", String(show));
+        el.setAttribute("aria-label", label);
+        el.title = label;
+        el.innerHTML = ico(show ? "eyeOff" : "eye", 18);
+        break;
+      }
+      case "toggle-pin": {
+        const m = membership(me().id, itemId);
+        const c = comm(itemId);
+        if (!m || !c) {
+          toast("Unite a la comunidad para poder fijarla.", true);
+          return;
+        }
+        const pinnedCount = context.db.memberships.filter((x) => x.userId === me().id && x.pinned).length;
+        if (!m.pinned && pinnedCount >= MAX_PINNED_COMMUNITIES) {
+          toast(`Podés fijar hasta ${MAX_PINNED_COMMUNITIES} comunidades. Desfijá una para fijar ${c.name}.`, true);
+          return;
+        }
+        await forumApi.changeMembership(me().id, itemId, m.pinned ? "desfijar" : "fijar");
+        await connect(listeners.signal);
+        render();
+        toast(m.pinned ? `Desfijaste ${c.name}.` : `Fijaste ${c.name}.`);
+        break;
+      }
       case "open-post":
         setView("postDetail", { postId: itemId });
         break;
@@ -414,6 +409,9 @@ export function mountPunto(
         break;
       case "toggle-sidebar":
         if (mobileViewport.matches) setMobileSidebar(!mobileSidebarOpen);
+        break;
+      case "collapse-sidebar":
+        if (!mobileViewport.matches) setDesktopSidebar(!desktopSidebarCollapsed);
         break;
       case "close-sidebar":
         setMobileSidebar(false);
@@ -470,6 +468,7 @@ export function mountPunto(
       case "logout":
         await forumApi.logout();
         clearBrowserSession();
+        clearSessionTimer();
         redirectToLogin();
         toast("Cerraste sesión.");
         break;
@@ -722,34 +721,6 @@ export function mountPunto(
         break;
     }
   }
-  app.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || mobileViewport.matches || sidebarResize) return;
-    const handle = event.target;
-    if (!(handle instanceof HTMLElement) || !handle.matches(".sidebar-resize")) return;
-    const width = app.querySelector<HTMLElement>("#site-sidebar")?.offsetWidth ?? MIN_SIDEBAR_WIDTH;
-    event.preventDefault();
-    handle.focus({ preventScroll: true });
-    handle.setPointerCapture(event.pointerId);
-    sidebarResize = { pointerId: event.pointerId, handle, startX: event.clientX, startWidth: width, width };
-    updateSidebar();
-  }, { signal: listeners.signal });
-  app.addEventListener("pointermove", (event) => {
-    if (!sidebarResize || sidebarResize.pointerId !== event.pointerId) return;
-    const width = Math.round(sidebarResize.startWidth + event.clientX - sidebarResize.startX);
-    sidebarResize.width = Math.min(MAX_SIDEBAR_WIDTH, Math.max(COLLAPSED_SIDEBAR_WIDTH, width));
-    updateSidebar();
-  }, { signal: listeners.signal });
-  app.addEventListener("pointerup", (event) => {
-    if (!sidebarResize || sidebarResize.pointerId !== event.pointerId) return;
-    const { startWidth, width } = sidebarResize;
-    sidebarResize = null;
-    if (width === startWidth) updateSidebar();
-    else if (width < SIDEBAR_SNAP_WIDTH) setDesktopSidebar(true);
-    else setDesktopSidebar(false, Math.max(MIN_SIDEBAR_WIDTH, width));
-  }, { signal: listeners.signal });
-  app.addEventListener("lostpointercapture", (event) => {
-    if (sidebarResize?.pointerId === event.pointerId) cancelSidebarResize();
-  }, { signal: listeners.signal });
   app.addEventListener(
     "click",
     (event) => {
@@ -785,10 +756,6 @@ export function mountPunto(
     "keydown",
     (event) => {
       if (actionDialog?.open || app.querySelector("#profile-photo-dialog[open]")) return;
-      if (event.key === "Escape" && sidebarResize) {
-        cancelSidebarResize();
-        return;
-      }
       if (event.key === "Escape" && mobileSidebarOpen) {
         setMobileSidebar(false);
         return;
@@ -807,18 +774,12 @@ export function mountPunto(
       }
       if (
         event.target instanceof HTMLElement &&
-        event.target.matches(".sidebar-resize") &&
-        ["ArrowLeft", "ArrowRight", "Enter"].includes(event.key)
+        event.target.matches('[role="link"][data-action]') &&
+        (event.key === "Enter" || event.key === " ")
       ) {
         event.preventDefault();
-        const width = app.querySelector<HTMLElement>("#site-sidebar")?.offsetWidth ?? MIN_SIDEBAR_WIDTH;
-        if (event.key === "Enter") setDesktopSidebar(!desktopSidebarCollapsed);
-        else if (event.key === "ArrowLeft" && width <= MIN_SIDEBAR_WIDTH) setDesktopSidebar(true);
-        else if (desktopSidebarCollapsed) setDesktopSidebar(false);
-        else {
-          const step = event.key === "ArrowLeft" ? -16 : 16;
-          setDesktopSidebar(false, Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, width + step)));
-        }
+        const target = event.target;
+        void perform(() => handleAction(target.dataset.action ?? "", target));
         return;
       }
       if (
@@ -992,12 +953,14 @@ export function mountPunto(
           }
           case "login":
             await forumApi.login(field("username").trim(), field("clave"));
+            clearSessionTimer();
             setView("home");
             toast("Iniciaste sesión.");
             break;
           case "register": {
             const user = await forumApi.register(field("username").trim(), field("email").trim(), field("clave"));
             clearBrowserSession();
+            clearSessionTimer();
             showWelcomeForNewAccount(user.id);
             setView("home");
             toast("Tu cuenta se creó correctamente.");
@@ -1144,6 +1107,7 @@ export function mountPunto(
       const label = dateLabel(time.dateTime, now);
       if (time.textContent !== label) time.textContent = label;
     }
+    updateSessionTimers(app, now);
   }
 
   document.addEventListener("visibilitychange", () => {
@@ -1151,7 +1115,6 @@ export function mountPunto(
     checkNotifications();
   }, { signal: listeners.signal });
   mobileViewport.addEventListener("change", () => {
-    cancelSidebarResize();
     if (mobileSidebarOpen) setMobileSidebar(false);
     else updateSidebar();
   }, { signal: listeners.signal });

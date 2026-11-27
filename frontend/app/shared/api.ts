@@ -50,6 +50,7 @@ interface ApiComment {
   comentario_padre_id: number | null;
   texto: string;
   fecha: string;
+  fecha_edicion?: string | null;
   eliminado: boolean;
 }
 interface ApiForum {
@@ -61,6 +62,7 @@ interface ApiForum {
     comunidad_id: number;
     rol: "miembro" | "moderador";
     fecha_union: string;
+    fijada?: boolean;
   }[];
   guardados: { usuario_id: number; post_id: number; fecha: string }[];
   reportes: {
@@ -234,6 +236,7 @@ function comment(row: ApiComment): Comment {
       row.comentario_padre_id === null ? null : String(row.comentario_padre_id),
     text: row.texto,
     createdAt: date(row.fecha),
+    editedAt: row.fecha_edicion ? date(row.fecha_edicion) : undefined,
     deleted: row.eliminado,
     baseScore: 0,
   };
@@ -268,6 +271,7 @@ export const forumApi = {
         communityId: String(row.comunidad_id),
         role: row.rol,
         joinedAt: date(row.fecha_union),
+        pinned: row.fijada ?? false,
       })),
       saved: data.guardados.map(relation),
       reports: data.reportes.map((row) => ({
@@ -479,7 +483,7 @@ export const forumApi = {
   changeMembership(
     actor: string,
     community: string,
-    action: "unir" | "salir" | "promover" | "banear",
+    action: "unir" | "salir" | "promover" | "banear" | "fijar" | "desfijar",
     target?: string,
     reason?: string,
     until?: string | null,

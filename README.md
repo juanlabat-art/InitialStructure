@@ -25,8 +25,8 @@ Sin `backend/.env`, podés empezar con SQLite y datos de ejemplo. Para trabajar 
 | Sección | Funciones |
 | --- | --- |
 | Inicio y búsqueda | Explorar publicaciones y buscar por texto, comunidad o nombre de usuario. |
-| Comunidades | Unirte, publicar, ver el ranking y, con 10 de karma, crear una comunidad. |
-| Publicaciones | Leer, comentar, responder a otros comentarios, votar, guardar y reportar. |
+| Comunidades | Unirte, publicar, ver el ranking, fijar hasta 3 comunidades en el menú lateral y, con 10 de karma, crear una comunidad. |
+| Publicaciones | Leer, comentar, responder a otros comentarios, votar, guardar y reportar. Las publicaciones y los comentarios editados muestran "(editado)". |
 | Anónimo | Hacer preguntas y responder sin mostrar tu nombre de usuario. |
 | Usuarios y perfil | Buscar cuentas, visitar perfiles, consultar el karma y editar tu descripción o foto. |
 | Notificaciones | Ver avisos de comentarios y respuestas. El administrador general también recibe avisos de publicaciones que alcanzan cinco reportes. |

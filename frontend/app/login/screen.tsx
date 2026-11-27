@@ -1,7 +1,7 @@
 "use client";
 
 import PuntoScreen from "../punto-screen";
-import { formPanel } from "../shared/form-panel";
+import { formPanel, passwordInput } from "../shared/form-panel";
 
 function loginForm() {
   return formPanel(
@@ -13,7 +13,7 @@ function loginForm() {
       </div>
       <div class="form-field">
         <label for="login-password">Contraseña</label>
-        <input id="login-password" name="clave" type="password" autocomplete="current-password" required />
+        ${passwordInput("login-password", '<input id="login-password" name="clave" type="password" autocomplete="current-password" required />')}
       </div>
       <button class="btn btn-primary" type="submit">Ingresar</button>
     </form>

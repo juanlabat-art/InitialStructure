@@ -52,6 +52,7 @@ export interface Comment {
   parentId: string | null;
   text: string;
   createdAt: string;
+  editedAt?: string;
   baseScore: number;
   deleted: boolean;
 }
@@ -84,6 +85,7 @@ export interface DemoData {
     communityId: string;
     role: "miembro" | "moderador";
     joinedAt: string;
+    pinned?: boolean;
   }[];
   posts: Post[];
   comments: Comment[];

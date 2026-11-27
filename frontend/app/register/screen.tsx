@@ -1,6 +1,6 @@
 "use client";
 import PuntoScreen from "../punto-screen";
-import { formPanel } from "../shared/form-panel";
+import { formPanel, passwordInput } from "../shared/form-panel";
 
 function registerForm() {
   return formPanel(
@@ -10,7 +10,7 @@ function registerForm() {
       <div class="form-field"><label for="new-email">Email</label><input id="new-email" name="email" type="email" autocomplete="email" required /></div>
       <div class="form-field">
         <label for="new-password">Contraseña</label>
-        <input id="new-password" name="clave" type="password" minlength="8" maxlength="128" pattern="(?=.*\\p{Lu})(?=.*[0-9])(?=.*[\\p{P}\\p{S}]).*" autocomplete="new-password" aria-describedby="password-requirements" title="Al menos 8 caracteres, una mayúscula, un número y un carácter especial" required />
+        ${passwordInput("new-password", `<input id="new-password" name="clave" type="password" minlength="8" maxlength="128" pattern="(?=.*\\p{Lu})(?=.*[0-9])(?=.*[\\p{P}\\p{S}]).*" autocomplete="new-password" aria-describedby="password-requirements" title="Al menos 8 caracteres, una mayúscula, un número y un carácter especial" required />`)}
         <p class="form-help" id="password-requirements">Usá al menos 8 caracteres, una mayúscula, un número y un carácter especial, como ! o #.</p>
       </div>
       <button class="btn btn-primary" type="submit">Crear cuenta</button>

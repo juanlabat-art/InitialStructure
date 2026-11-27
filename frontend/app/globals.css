@@ -43,11 +43,12 @@
 .app-shell {
   --page-gutter: clamp(12px, 2.6vw, 48px);
   --column-gap: clamp(14px, 1.8vw, 30px);
-  --menu-width: var(--sidebar-width, clamp(184px, 16vw, 250px));
+  --menu-width: clamp(200px, 16vw, 250px);
   --aside-width: clamp(230px, 20vw, 340px);
   --header-height: 76px;
   display: grid;
-  grid-template-columns: var(--sidebar-drag-width, var(--menu-width)) minmax(0, 1fr);
+  grid-template-columns: var(--menu-width) minmax(0, 1fr);
+  transition: grid-template-columns .2s ease;
   min-height: 100vh;
   min-height: 100dvh;
 }
@@ -75,7 +76,8 @@
   min-height: var(--header-height);
   padding-inline: 13px;
 }
-.sidebar-brand .logo { padding: 0; }
+.sidebar-brand .logo { padding: 0; min-width: 0; }
+.logo-text { white-space: nowrap; }
 .sidebar-content {
   display: flex;
   flex: 1;
@@ -89,37 +91,20 @@
 .left-footer { margin-top: auto; padding-top: 24px; }
 .sidebar-close,
 .sidebar-backdrop,
-.sidebar-resize,
+.sidebar-collapse,
 .topbar-start { display: none; }
 .sidebar-toggle { flex-shrink: 0; }
 
 @media (width > 870px) {
   .leftbar { z-index: 31; }
-  .sidebar-resize {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-end: -6px;
-    display: block;
-    width: 12px;
-    cursor: col-resize;
-    touch-action: none;
-  }
-  .sidebar-resize::after {
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: calc(50% - 1px);
-    width: 2px;
-    content: "";
-    background: transparent;
-  }
-  .sidebar-resize:hover::after,
-  .sidebar-resize:focus-visible::after,
-  [data-sidebar-resizing] .sidebar-resize::after { background: var(--brand); }
-  [data-sidebar-resizing],
-  [data-sidebar-resizing] * { cursor: col-resize; user-select: none; }
-
+  .sidebar-collapse { display: grid; flex-shrink: 0; }
+  .sidebar-brand { justify-content: flex-start; gap: 4px; padding-inline: 10px; }
+  /* El logo escala con el ancho del menú para que "VoZero" entre siempre en un renglón. */
+  .sidebar-brand .logo { gap: 8px; font-size: clamp(21px, 1.75vw, 28px); letter-spacing: -1.2px; }
+  .sidebar-brand .logo-symbol { width: 32px; height: 32px; }
   .app-shell[data-sidebar-collapsed] { --menu-width: 68px; }
   [data-sidebar-collapsed] .sidebar-brand { justify-content: center; }
+  [data-sidebar-collapsed] .sidebar-brand .logo { display: none; }
   [data-sidebar-collapsed] .sidebar-brand .logo-text,
   [data-sidebar-collapsed] .primary-nav .nav-item span,
   [data-sidebar-collapsed] .sidebar-communities,
@@ -138,7 +123,8 @@
 }
 
 .topbar {
-  grid-template-columns: minmax(0, 1fr) var(--aside-width);
+  /* Las acciones ocupan lo que necesitan y el buscador se achica: nunca se superponen. */
+  grid-template-columns: minmax(0, 1fr) minmax(var(--aside-width), auto);
   position: sticky;
   top: 0;
   z-index: 30;
@@ -208,7 +194,6 @@
 }
 .post-options-panel .post-option-delete,
 .menu-item.menu-item-danger { color: var(--error); }
-.post-edited { border: 1px solid var(--line); }
 .footer-pill.saved-post svg { fill: currentColor; }
 .deleted-content { color: var(--muted); }
 .action-dialog {
@@ -322,6 +307,9 @@ a.user-profile-link { color: var(--brand); text-decoration: underline; text-unde
 @media (max-width: 1170px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   .topbar { grid-template-columns: minmax(0, 1fr) auto; }
+  .top-actions .create-top span,
+  .search-shortcut { display: none; }
+  .top-actions .create-top { padding: 10px; }
   .rightbar { display: none; }
 }
 
@@ -422,8 +410,16 @@ a.user-profile-link { color: var(--brand); text-decoration: underline; text-unde
   .moderation-table .btn { padding-inline: 5px; }
 }
 
-@media (max-width: 340px) {
-  .topbar-start .logo-symbol { display: none; }
+@media (max-width: 530px) {
+  .topbar-start { min-width: 0; }
+  .top-actions { gap: 4px; }
+  .top-avatar > svg:last-child { display: none; }
+}
+
+/* En pantallas muy angostas queda solo el símbolo del logo para que nada se superponga. */
+@media (max-width: 430px) {
+  .topbar-start .logo-text { display: none; }
+  .topbar-start .logo-symbol { display: block; }
 }
 
 .rightcard { background: var(--surface-secondary); }
@@ -530,3 +526,78 @@ a.user-profile-link { color: var(--brand); text-decoration: underline; text-unde
   background: var(--selected);
   border-radius: 8px;
 }
+
+/* Mostrar u ocultar contraseña */
+.password-wrap { position: relative; }
+.form-field .password-wrap input { padding-right: 48px; }
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--muted);
+}
+.password-toggle:hover,
+.password-toggle[aria-pressed="true"] { color: var(--brand); background: var(--hover); }
+.password-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+/* Marca de contenido editado */
+.edited-mark { margin-left: 5px; font-size: 11px; color: var(--muted); font-style: italic; }
+
+/* Contador de sesión junto al perfil */
+.session-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-secondary);
+  color: var(--ink-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.session-timer svg { color: var(--brand); flex-shrink: 0; }
+@media (max-width: 530px) {
+  .session-timer { padding: 5px 8px; font-size: 10px; }
+  .session-timer svg { display: none; }
+}
+
+/* Comunidades fijadas */
+.community-row { position: relative; display: flex; align-items: center; }
+.community-row .community-link { padding-right: 40px; }
+.community-row .community-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pin-btn {
+  position: absolute;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity .15s;
+}
+.community-row:hover .pin-btn,
+.pin-btn:focus-visible,
+.community-row.is-pinned .pin-btn { opacity: 1; }
+.community-row.is-pinned .pin-btn,
+.pin-btn:hover { color: var(--brand); background: var(--hover); }
+@media (hover: none) { .pin-btn { opacity: 1; } }
+.nav-heading svg { vertical-align: -1px; }
+.pin-toggle[aria-pressed="true"] { color: var(--brand); }
+
+/* Card de comunidad clickeable */
+.community-tile.is-clickable { cursor: pointer; transition: border-color .15s, background .15s; }
+.community-tile.is-clickable:hover { border-color: var(--brand); }
+.community-tile.is-clickable:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.community-tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.community-tile .community-tile-top .btn { margin-top: 0; }

@@ -1,6 +1,6 @@
 "use client";
 import PuntoScreen from "../punto-screen";
-import { backToHome } from "../shared/chrome";
+import { backToHome, pinButton } from "../shared/chrome";
 import type { ScreenContext } from "../shared/state";
 import { ico, cicon, esc, count } from "../shared/presentation";
 
@@ -13,12 +13,11 @@ function communities(context: ScreenContext) {
   </div>
   <div class="community-grid">${db.communities.map((community) => {
     const joined = membership(me().id, community.id);
-    return `<article class="card community-tile">
-      ${cicon(community, 47)}
+    return `<article class="card community-tile is-clickable" data-action="open-community" data-id="${community.id}" role="link" tabindex="0" aria-label="Abrir comunidad ${esc(community.name)}">
+      <div class="community-tile-top">${cicon(community, 47)}${joined ? pinButton(context, community.id, community.name) : ""}</div>
       <h3>${esc(community.name)}</h3>
       <p>${esc(community.description)}</p>
       <div class="comm-meta">${count(memberCount(community.id))} miembros${joined ? " · Ya sos miembro" : ""}</div>
-      <button class="btn btn-sm btn-outline" data-action="open-community" data-id="${community.id}">${joined ? "Ver comunidad" : "Conocer comunidad"}</button>
       ${joined ? "" : `<button class="btn btn-sm btn-primary" data-action="join" data-id="${community.id}">${ico("plus", 14)} Unirme</button>`}
     </article>`;
   }).join("")}</div>`;

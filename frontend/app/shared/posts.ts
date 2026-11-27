@@ -1,6 +1,6 @@
 import type { ScreenContext } from "./state";
 import { type Post } from "../demo-types";
-import { ico, cicon, esc, relativeTime, count, userProfileLink } from "./presentation";
+import { ico, cicon, esc, relativeTime, count, userProfileLink, editedMark } from "./presentation";
 
 export function sortPosts(context: ScreenContext, posts: Post[], sort = context.ui.sort) {
   const { postPoints } = context;
@@ -34,13 +34,7 @@ export function filters(context: ScreenContext) {
 }
 
 export function postDate(p: Post) {
-  return relativeTime(p.createdAt, "post-date");
-}
-
-export function editedPostBadge(p: Post) {
-  return p.editedAt
-    ? `<time class="tag post-edited" datetime="${esc(p.editedAt)}">${ico("edit", 12)} Editado</time>`
-    : "";
+  return relativeTime(p.createdAt, "post-date") + editedMark(p.editedAt);
 }
 
 export function postActions(context: ScreenContext, p: Post) {
@@ -84,7 +78,7 @@ export function postCard(context: ScreenContext, p: Post) {
     <div class="post-topline">${cicon(c)}<button class="comm" data-action="open-community" data-id="${c.id}">${esc(c.name)}</button><span class="dot">·</span>${userProfileLink(author, { prefix: "por " })}<span class="dot">·</span>${postDate(p)}${postActions(context, p)}</div>
     <h3 class="post-title" data-action="open-post" data-id="${p.id}">${esc(p.title)}</h3>
     <p class="post-content">${esc(p.content)}</p>
-    <div class="post-tags">${editedPostBadge(p)}${p.isQuestion ? `<span class="tag">${ico("message", 12)} Pregunta</span>` : ""}${locked ? `<span class="tag orange">${ico("lock", 12)} Opiná primero</span>` : ""}</div>
+    <div class="post-tags">${p.isQuestion ? `<span class="tag">${ico("message", 12)} Pregunta</span>` : ""}${locked ? `<span class="tag orange">${ico("lock", 12)} Opiná primero</span>` : ""}</div>
     ${locked ? `<div class="locked-banner"><span class="lock-square">${ico("lock", 17)}</span><div><b>Primero tu opinión, después las demás.</b><small>Respondé para desbloquear la conversación.</small></div><button class="btn btn-sm btn-primary" data-action="open-post" data-id="${p.id}">Responder</button></div>` : ""}
     <div class="post-footer"><button class="footer-pill ${v === 1 ? "on up" : ""}" data-action="vote-post" data-id="${p.id}" data-value="1" title="Votar a favor">${ico("arrowUp", 17)}</button><span style="font-size:12px;font-weight:850;color:var(--ink-secondary)">${count(postPoints(p))}</span><button class="footer-pill ${v === -1 ? "on down" : ""}" data-action="vote-post" data-id="${p.id}" data-value="-1" title="Votar en contra">${ico("arrowDown", 17)}</button>
     <button class="footer-pill" data-action="open-post" data-id="${p.id}">${ico("message", 16)} ${numberOfReplies(p.id)} comentarios</button><span class="foot-gap"></span>${savePostButton(context, p)}${reportPostButton(context, p)}</div>

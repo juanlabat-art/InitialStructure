@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
@@ -40,7 +42,10 @@ class ComentarioRepository:
         comentario: Comentario,
         dto: UpdateComentarioDTO,
     ) -> Comentario:
+        if comentario.texto == dto.texto:
+            return comentario
         comentario.texto = dto.texto
+        comentario.fecha_edicion = datetime.now(timezone.utc)
         self.db.commit()
         self.db.refresh(comentario)
         return comentario

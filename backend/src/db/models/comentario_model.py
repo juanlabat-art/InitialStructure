@@ -31,6 +31,7 @@ class Comentario(Base):
         nullable=False,
         server_default=func.now(),
     )
+    fecha_edicion = Column(DateTime(timezone=True), nullable=True)
     eliminado = Column(
         Boolean,
         nullable=False,

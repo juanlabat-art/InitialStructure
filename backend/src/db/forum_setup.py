@@ -81,6 +81,13 @@ def setup_forum_database() -> None:
         if "fecha_edicion" not in columns:
             column_type = Post.__table__.c.fecha_edicion.type.compile(dialect=db.dialect)
             db.execute(text(f"ALTER TABLE post ADD COLUMN fecha_edicion {column_type}"))
+        comment_columns = {column["name"] for column in inspect(db).get_columns("comentario")}
+        if "fecha_edicion" not in comment_columns:
+            column_type = Post.__table__.c.fecha_edicion.type.compile(dialect=db.dialect)
+            db.execute(text(f"ALTER TABLE comentario ADD COLUMN fecha_edicion {column_type}"))
+        membership_columns = {column["name"] for column in inspect(db).get_columns("miembros_comunidad")}
+        if "fijada" not in membership_columns:
+            db.execute(text("ALTER TABLE miembros_comunidad ADD COLUMN fijada BOOLEAN NOT NULL DEFAULT FALSE"))
         if "solicitud_id" not in columns:
             db.execute(text("ALTER TABLE post ADD COLUMN solicitud_id VARCHAR(36)"))
         db.execute(text(

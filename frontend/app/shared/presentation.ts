@@ -52,6 +52,13 @@ export const dateLabel = (iso: string, now = Date.now()) => {
   return d < 30 ? `hace ${d} d` : dateOnly.format(timestamp);
 };
 
+export function editedMark(iso?: string) {
+  if (!iso) return "";
+  const timestamp = Date.parse(iso);
+  const title = Number.isFinite(timestamp) ? ` title="Editado el ${esc(dateWithTime.format(timestamp))}"` : "";
+  return `<span class="edited-mark"${title}>(editado)</span>`;
+}
+
 export function relativeTime(iso: string, className = "") {
   const timestamp = Date.parse(iso);
   if (!Number.isFinite(timestamp)) return "Fecha desconocida";
@@ -91,6 +98,7 @@ const icons: Record<string, string> = {
   heart:
     '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7 7 0 0 0 0 9.1L12 22l8.9-8.3a7 7 0 0 0-.1-9.1Z"/>',
   check: '<path d="m4 12 5 5L20 6"/>',
+  pin: '<path d="M12 17v5"/><path d="M9 3h6l-1 5 4 4v2H6v-2l4-4z"/>',
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   flag: '<path d="M5 22V4m0 0c4-3 6 3 10 0 1.6-1 2.6-1.2 4-1v12c-4-2-7 2-10 0-1.4-1-2.5-1-4 0"/>',
   settings:

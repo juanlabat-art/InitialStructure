@@ -17,6 +17,9 @@ from src.services.karma_service import actualizar_karma, desglose_votos, votos_p
 from src.utils.fechas import fecha_utc
 
 
+MAX_COMUNIDADES_FIJADAS = 3
+
+
 def utc_now():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -200,6 +203,21 @@ class ForumService:
                 if otros_roles and "moderador" not in otros_roles:
                     raise HTTPException(409, "El último moderador no puede salir si quedan miembros")
             self._change_relation(memberships, keys)
+        elif payload.accion in ("fijar", "desfijar"):
+            if role is None:
+                raise HTTPException(403, "Unite a la comunidad para fijarla")
+            fijar = payload.accion == "fijar"
+            if fijar:
+                # Bloquea al usuario para que dos pedidos simultáneos no superen el máximo.
+                db.get(Usuario, payload.usuario_id, with_for_update=True, populate_existing=True)
+                fijadas = db.scalar(select(func.count()).select_from(memberships).where(
+                    memberships.c.usuario_id == payload.usuario_id,
+                    memberships.c.fijada.is_(True),
+                    memberships.c.comunidad_id != community_id,
+                ))
+                if fijadas >= MAX_COMUNIDADES_FIJADAS:
+                    raise HTTPException(409, f"Podés fijar hasta {MAX_COMUNIDADES_FIJADAS} comunidades")
+            self._change_relation(memberships, keys, {"fijada": fijar})
         else:
             if role != "moderador":
                 raise HTTPException(403, "Acción solo para moderadores")

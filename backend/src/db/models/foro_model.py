@@ -35,6 +35,7 @@ memberships = Table(
     foreign("comunidad_id", "comunidad", primary_key=True),
     Column("rol", String(10), nullable=False, server_default="miembro"),
     timestamp("fecha_union"),
+    Column("fijada", Boolean, nullable=False, server_default=false()),
 )
 saved = Table(
     "posts_guardados", Base.metadata,

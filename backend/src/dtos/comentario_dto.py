@@ -22,4 +22,5 @@ class ComentarioResponseDTO(BaseModel):
     comentario_padre_id: int | None
     texto: str
     fecha: FechaUTC
+    fecha_edicion: FechaUTC | None = None
     eliminado: bool

@@ -12,7 +12,7 @@ class Actor(BaseModel):
 
 
 class MembershipAction(Actor):
-    accion: Literal["unir", "salir", "promover", "banear"]
+    accion: Literal["unir", "salir", "promover", "banear", "fijar", "desfijar"]
     miembro_id: PositiveInt | None = None
     motivo: str = Field(default="", max_length=255)
     hasta: datetime | None = None

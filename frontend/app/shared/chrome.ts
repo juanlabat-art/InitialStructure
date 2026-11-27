@@ -1,5 +1,8 @@
 import type { ScreenContext } from "./state";
 import { ico, esc, av, cicon, count, relativeTime, karmaProgress, siteRoleLabels } from "./presentation";
+import { sessionTimer } from "./session-timer";
+
+export const MAX_PINNED_COMMUNITIES = 3;
 
 function isCommunityView(view: ScreenContext["ui"]["view"]) {
   return ["community", "communityRanking", "communityModeration", "ban"].includes(view);
@@ -21,6 +24,17 @@ function navItem(
 
 function brandButton() {
   return '<button class="logo" data-action="navigate" data-view="home" aria-label="VoZero"><img class="logo-symbol" src="/vozero-logo.jpg" alt="" width="38" height="38" /><span class="logo-text">VoZero</span></button>';
+}
+
+export function isPinned(context: ScreenContext, communityId: string) {
+  const userId = context.me().id;
+  return context.db.memberships.some((m) => m.userId === userId && m.communityId === communityId && m.pinned);
+}
+
+/** Botón con texto para fijar o desfijar una comunidad (solo para miembros). */
+export function pinButton(context: ScreenContext, communityId: string, name: string) {
+  const pinned = isPinned(context, communityId);
+  return `<button type="button" class="btn btn-sm ${pinned ? "btn-light" : "btn-outline"} pin-toggle" data-action="toggle-pin" data-id="${communityId}" aria-pressed="${pinned}" aria-label="${pinned ? "Desfijar" : "Fijar"} ${esc(name)}">${ico("pin", 14)} ${pinned ? "Fijada" : "Fijar"}</button>`;
 }
 
 export function backToHome() {
@@ -67,6 +81,7 @@ export function header(context: ScreenContext) {
     <div class="top-actions">
     ${ui.view === "home" || isCommunityView(ui.view) ? "" : `<button class="btn btn-primary create-top" aria-label="Crear publicación" data-action="compose">${ico("plus", 17)}<span>Crear post</span></button>`}
     <button class="icon-btn" aria-label="${hasUnreadNotifications(context) ? "Notificaciones nuevas" : "Notificaciones"}" title="Notificaciones" aria-expanded="${ui.openMenu === "notifications"}" aria-controls="notifications-menu" data-menu-trigger="notifications" data-action="notifications">${ico("bell", 20)}<span class="notif-dot" aria-hidden="true"${hasUnreadNotifications(context) ? "" : " hidden"}></span></button>
+    ${sessionTimer(u.id)}
     <button class="top-avatar" aria-label="Menú de cuenta" aria-expanded="${ui.openMenu === "profile"}" aria-controls="profile-menu" data-menu-trigger="profile" data-action="profile-menu">
       ${av(u)}<span class="username" style="font-size:12px;font-weight:800">${esc(u.username)}</span>
       ${ico("dots", 18)}
@@ -74,7 +89,7 @@ export function header(context: ScreenContext) {
     </div>
     <div class="profile-menu" id="profile-menu" data-header-menu="profile"${ui.openMenu === "profile" ? "" : " hidden"}>
       <div class="menu-user"><strong>@${esc(u.username)}</strong><span>${siteRoleLabels[context.siteRole ?? "usuario"]} · ${totalKarma(u.id)} karma</span></div>
-           ${profileActions(context)}
+           <a class="menu-item" href="/myprofile/edit">${ico("edit", 16)} Editar perfil</a>
            ${context.siteRole === "admin" || context.siteRole === "subadmin" ? `<button class="menu-item" data-action="navigate" data-view="admin">${ico("shield", 16)} Administración</button>` : ""}
            <button class="menu-item" data-action="logout">Cerrar sesión</button>
     </div>
@@ -87,12 +102,24 @@ export function header(context: ScreenContext) {
 
 export function sidebar(context: ScreenContext) {
   const { db, me, comm, ui } = context;
-  const joined = db.memberships
-    .filter((m) => m.userId === me().id)
+  const mine = db.memberships.filter((m) => m.userId === me().id);
+  const pinnedIds = new Set(mine.filter((m) => m.pinned).map((m) => m.communityId));
+  const joined = mine
     .map((m) => comm(m.communityId))
     .filter((c) => c !== undefined);
+  const pinned = joined.filter((c) => pinnedIds.has(c.id));
+  const others = joined.filter((c) => !pinnedIds.has(c.id));
+  const row = (c: (typeof joined)[number]) => {
+    const isPinned = pinnedIds.has(c.id);
+    const label = `${isPinned ? "Desfijar" : "Fijar"} ${esc(c.name)}`;
+    return `<div class="community-row${isPinned ? " is-pinned" : ""}">
+      <button class="community-link ${ui.view === "community" && ui.communityId === c.id ? "active" : ""}" data-action="open-community" data-id="${c.id}">${cicon(c)}<span>${esc(c.name)}</span></button>
+      <button type="button" class="pin-btn" data-action="toggle-pin" data-id="${c.id}" aria-pressed="${isPinned}" aria-label="${label}" title="${isPinned ? "Desfijar" : "Fijar"}">${ico("pin", 15)}</button>
+    </div>`;
+  };
   return `<aside class="leftbar" id="site-sidebar" aria-label="Menú lateral">
     <div class="sidebar-brand">
+      <button type="button" class="icon-btn sidebar-collapse" data-action="collapse-sidebar" aria-controls="site-sidebar" aria-expanded="true" aria-label="Contraer menú lateral" title="Contraer menú lateral">${ico("menu", 20)}</button>
       ${brandButton()}
       <button type="button" class="icon-btn sidebar-close" data-action="close-sidebar" aria-label="Cerrar menú lateral">${ico("x", 20)}</button>
     </div>
@@ -101,14 +128,15 @@ export function sidebar(context: ScreenContext) {
         ${navItem(context, "home", "Inicio", "home")}${navItem(context, "communities", "Explorar", "compass")}${navItem(context, "users", "Usuarios", "users")}${navItem(context, "anonymous", "Anónimo", "mask")}${navItem(context, "saved", "Guardados", "bookmark")}${navItem(context, "profile", "Mi perfil", "user")}
       </nav>
       <div class="sidebar-communities">
-        <div class="side-rule"></div><div class="nav-heading">Mis comunidades</div>
-        ${joined.map((c) => `<button class="community-link ${ui.view === "community" && ui.communityId === c.id ? "active" : ""}" data-action="open-community" data-id="${c.id}">${cicon(c)}<span>${esc(c.name)}</span></button>`).join("")}
+        <div class="side-rule"></div>
+        ${pinned.length ? `<div class="nav-heading">${ico("pin", 11)} Fijadas · ${pinned.length}/${MAX_PINNED_COMMUNITIES}</div>${pinned.map(row).join("")}` : ""}
+        ${others.length || !pinned.length ? '<div class="nav-heading">Mis comunidades</div>' : ""}
+        ${others.map(row).join("")}
         ${joined.length ? "" : '<p style="font-size:12px;color:var(--muted);padding:0 15px">Todavía no te uniste a comunidades.</p>'}
         <button class="sidebar-create" data-action="create-community">${ico("plus", 15)} Crear comunidad</button>
       </div>
       <div class="left-footer"><b>VoZero © ${new Date().getFullYear()}</b></div>
     </div>
-    <div class="sidebar-resize" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="site-sidebar" aria-label="Ajustar ancho del menú lateral"></div>
   </aside>`;
 }
 

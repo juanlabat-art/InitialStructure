@@ -1,6 +1,6 @@
 "use client";
 import PuntoScreen from "../../punto-screen";
-import { backToHome } from "../../shared/chrome";
+import { backToHome, pinButton } from "../../shared/chrome";
 import type { ScreenContext } from "../../shared/state";
 import { noContent, sortPosts, filters, postCard } from "../../shared/posts";
 import { photoEditor } from "../../shared/photos";
@@ -36,6 +36,7 @@ export function communityDetail(
           ${joined ? `<span class="tag green">${ico("check", 14)} Miembro</span>` : ""}
         </div>
       </div>
+      ${joined && !blocked ? pinButton(context, c.id, c.name) : ""}
       <button type="button" class="btn btn-sm ${joined ? "btn-outline" : "btn-primary"}" data-action="${joined ? "leave" : "join"}" data-id="${c.id}" ${blocked ? "disabled" : ""}>
         ${blocked ? "Acceso restringido" : joined ? "Abandonar comunidad" : `${ico("plus", 14)} Unirme`}
       </button>
